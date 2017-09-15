@@ -1,17 +1,10 @@
 # featuristic
 
--------
-NOTE: THIS VERSION OF THE REPOSITORY IS NO LONGER ACTIVELY MAINTAINED 
-
-_Please see https://github.com/sysmedlab/featuristic_
-
-------
-
 **Install** 
 
 ```
 library("devtools")  
-install_github("claramarquardt/featuristic",dependencies = TRUE)    
+install_github("sysmedlab/featuristic",dependencies = TRUE)    
 library(featuristic)
 ```  
 **Documentation**
@@ -45,7 +38,7 @@ install_github("hadley/devtools")
 - To contribute:
 ````
 # 1. Clone the repo
-git clone https://github.com/ClaraMarquardt/featuristic.git
+git clone https://github.com/sysmedlab/featuristic.git
 
 # 2. Create a new branch
 git checkout -b [branch name]
@@ -55,5 +48,5 @@ git push origin [branch name]
 
 # 4. Test by installing from the branch
 library(devtools)
-install_git("git://github.com/ClaraMarquardt/featuristic.git", branch = "[branch name])
+install_git("git://github.com/sysmedlab/featuristic.git", branch = "[branch name])
 ````
