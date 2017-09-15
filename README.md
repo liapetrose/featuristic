@@ -40,11 +40,22 @@ install_github("hadley/devtools")
 # 1. Clone the repo
 git clone https://github.com/sysmedlab/featuristic.git
 
+# 2. Make/Save any changes 
+- Ensure that all dependencies are included in @import statements at the function top and are 
+listed in the Imports (CRAN Dependency)/ Remotes (Github Dependency) fields of the DESCRIPTION file
+- Recompile the package by executing the 'package_management/package_update.sh' script (Note: Prior to 
+compilation all dependencies need to be (manually) installed)
+- Confirm that the compilation was successful by checking the 'package_management/package_update.Rout' 
+file and the 'function_overview.csv'
+
 # 2. Create a new branch
 git checkout -b [branch name]
 
 # 3. Push all changes to the branch (assuming all changes have been committed)
 git push origin [branch name]
+
+* Note: Please see the contribution guide prior to committing 
+any changes: 'package_management/contribution_guide.txt'
 
 # 4. Test by installing from the branch
 library(devtools)
