@@ -28,7 +28,7 @@ install_github("hadley/devtools")
 - Package is actively being developed and extended
 
 - To contribute:
-````
+```
 # 1. Clone the repo
 git clone https://github.com/sysmedlab/featuristic.git
 
@@ -52,4 +52,4 @@ any changes: 'package_management/contribution_guide.txt'
 # 4. Test by installing from the branch
 library(devtools)
 install_git("git://github.com/sysmedlab/featuristic.git", branch = "[branch name])
-````
+```
