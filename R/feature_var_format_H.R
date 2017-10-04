@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param dt_list 
 #' @param function_ext_1
 #' @param function_ext_2

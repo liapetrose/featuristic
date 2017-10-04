@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param feature_set_name
 #' @return
 #' @examples
@@ -29,7 +28,9 @@ indiv_feature_gen <- function(feature_set_name, ...) {
 		lab_oncdrs=lab_oncdrs_feature_gen, 
 		dia_oncdrs_rpdr=dia_oncdrs_rpdr_feature_gen, 
 		med_chemo_oncdrs_rpdr=med_chemo_oncdrs_rpdr_feature_gen, 
-		lab_oncdrs_rpdr=lab_oncdrs_rpdr_feature_gen
+		lab_oncdrs_rpdr=lab_oncdrs_rpdr_feature_gen,
+		enc_oncdrs_rpdr=enc_oncdrs_rpdr_feature_gen
+
 	)
 
 	temp_function <- function_list[[feature_set_name]] 

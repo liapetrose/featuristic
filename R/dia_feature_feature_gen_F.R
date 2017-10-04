@@ -67,12 +67,12 @@
   dia <-foverlaps(dia, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
     "dia_date_1", "dia_date_2"), nomatch=0)
 
-  dia[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+  dia[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control
   if (!is.na(leak_dia_day_arg)) {
-    dia <- dia[!(pred_date-dia_date_1<=leak_dia_day_arg)]
+    dia <- dia[!(t0_date-dia_date_1<=leak_dia_day_arg)]
   }
   
   #-------------------------------------------------------------------------------#
@@ -93,7 +93,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc..", 
     zc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff", 
     subset=.(!is.na(zc_cat_name) & zc_cat_name!="" )))
 
@@ -107,7 +107,7 @@
   # reshaping - create diagnosis code count vars
 
   zc_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.excl.cancer..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.excl.cancer..", 
     zc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_cat_name) & zc_cat_name!="" & onc_dia==0)))
 
@@ -121,7 +121,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_mod_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.mod..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.mod..", 
     zc_mod_prim_onc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_mod_prim_onc_cat_name) & zc_mod_prim_onc_cat_name!="" )))
 
@@ -135,7 +135,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_mod_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.mod.excl.cancer..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.mod.excl.cancer..", 
     zc_mod_prim_onc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_mod_prim_onc_cat_name) & 
     zc_mod_prim_onc_cat_name!="" &  onc_dia==0)))
@@ -151,7 +151,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_mod_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.cancer.mod..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.mod..", 
     zc_mod_prim_onc_cat_name),  fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_mod_prim_onc_cat_name) & 
     zc_mod_prim_onc_cat_name!="" &  onc_dia==1)))
@@ -166,7 +166,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_cancer_detailed_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.cancer.detailed..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed..", 
     zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" )))
 
@@ -180,7 +180,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_cancer_detailed_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.cancer.detailed.excl.cancer..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed.excl.cancer..", 
     zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" & 
      onc_dia==0)))
@@ -195,7 +195,7 @@
   # reshaping - create diagnosis code count vars 
 
   zc_cancer_detailed_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_zc.cancer.detailed.cancer..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed.cancer..", 
     zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" & 
      onc_dia==1)))
@@ -210,7 +210,7 @@
   # reshaping - create diagnosis code count vars 
 
   ccs_single_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_dia.single.ccs..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.single.ccs..", 
     ccs_single_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(ccs_single_cat_name) & ccs_single_cat_name!="" )))
 
@@ -223,14 +223,14 @@
   #-------------------------------------------------------------------------------#
   # reshaping - create diagnosis code count vars 
   ccs_multi_timeframe_comb <- lapply(dia_timeframe_comb, function(x)
-    rbindlist(list(x[, .(outcome_id, empi, pred_date, ccs_multi_cat_name=ccs_multi_cat_name_1, time_diff)],
-    x[, .(outcome_id, empi, pred_date, ccs_multi_cat_name=ccs_multi_cat_name_2, time_diff)], 
-    x[, .(outcome_id, empi, pred_date, ccs_multi_cat_name=ccs_multi_cat_name_3, time_diff)],
-    x[, .(outcome_id, empi, pred_date, ccs_multi_cat_name=ccs_multi_cat_name_4, time_diff)]),
+    rbindlist(list(x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_1, time_diff)],
+    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_2, time_diff)], 
+    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_3, time_diff)],
+    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_4, time_diff)]),
     use.names=T))
 
   ccs_multi_timeframe_comb <- lapply(ccs_multi_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("dia_dia.count_dia.multi.ccs..",
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.multi.ccs..",
     ccs_multi_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
     subset=.(!is.na(ccs_multi_cat_name)  & ccs_multi_cat_name!="" )))
 
@@ -259,7 +259,7 @@
 
   # (b) reshaping - create diagnosis code count vars 
   gagne_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  
+    dcast.data.table(x, outcome_id + empi + t0_date ~  
     paste0("dia_dia.count_gagne.cat..", gagne), length, value.var = "gagne", 
     subset=.(!is.na(gagne)  & gagne!="" )))
 
@@ -303,17 +303,17 @@
 
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
-  dia <- dia[cohort, mget(names(dia)), on=c("outcome_id", "empi", "pred_date")]
+  dia <- dia[cohort, mget(names(dia)), on=c("outcome_id", "empi", "t0_date")]
  
   non_days_to_last_var <- setdiff(names(dia),grep("days_to_last", names(dia),value=T))
   set_na_zero(dia, subset_col=non_days_to_last_var)
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  dia_integer <- dia[, mget(setdiff(names(dia), c("outcome_id", "pred_date", "empi")))]
+  dia_integer <- dia[, mget(setdiff(names(dia), c("outcome_id", "t0_date", "empi")))]
   dia_integer[, names(dia_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  dia <- cbind(dia[, mget(c("outcome_id", "pred_date", "empi"))], dia_integer)
+  dia <- cbind(dia[, mget(c("outcome_id", "t0_date", "empi"))], dia_integer)
 
   dia[, ':='(dia_time_min=time_min, dia_time_max=time_max)]
 

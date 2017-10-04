@@ -57,16 +57,16 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
     by.x=c("empi",
     "order_enter_date_1", "order_enter_date_2"), nomatch=0)
 
- ed_enc[, time_diff:=as.numeric(difftime(pred_date, get(enc_file_date_var), 
+ ed_enc[, time_diff:=as.numeric(difftime(t0_date, get(enc_file_date_var), 
     units="days"))]
- ed_order[, time_diff:=as.numeric(difftime(pred_date, get(order_file_date_var), 
+ ed_order[, time_diff:=as.numeric(difftime(t0_date, get(order_file_date_var), 
     units="days"))]
  
 
   # implement leakage control 
   if (!is.na(leak_ed_day)) {
-    ed_enc <- ed_enc[!(pred_date-adm_date_1<=leak_ed_day)]
-    ed_order <- ed_order[!(pred_date-order_enter_date_1<=leak_ed_day)]
+    ed_enc <- ed_enc[!(t0_date-adm_date_1<=leak_ed_day)]
+    ed_order <- ed_order[!(t0_date-order_enter_date_1<=leak_ed_day)]
 
   }
 
@@ -98,12 +98,12 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   # reshaping - create ed cc count vars 
 
   ed_cc_timeframe_comb <- lapply(ed_enc_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date","time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date","time_diff"),
     measure=patterns("^ed_cc_[0-9]"), variable.name="ed_cc_name", 
     value.name="ed_cc"))
 
   ed_cc_timeframe_comb <- lapply(ed_cc_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("ed_ed.chief.complaint.count_ed.zc..", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("ed_ed.chief.complaint.count_ed.zc..", 
     ed_cc1), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!is.na(ed_cc1))))
@@ -118,12 +118,12 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   # reshaping - create ed med order count vars  
 
   ed_med_order_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
     value.name="snomed_destin"))
 
   ed_med_order_timeframe_comb <- lapply(ed_med_order_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("med_", snomed_destin1), 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!snomed_destin1=="" & !is.na(snomed_destin1))))
 
@@ -138,12 +138,12 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   # reshaping - create ed med order count vars
 
   ed_med_order_excl_anti_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "snomed_anti_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "snomed_anti_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
     value.name="snomed_destin"))
 
   ed_med_order_excl_anti_timeframe_comb <- lapply(ed_med_order_excl_anti_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("med_", snomed_destin1), 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!snomed_destin1=="" & !is.na(snomed_destin1) & is.na(snomed_anti_cat))))
 
@@ -158,12 +158,12 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   # reshaping - create ed med order count vars  
 
   ed_med_order_excl_chemo_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "snomed_chemo_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "snomed_chemo_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
     value.name="snomed_destin"))
 
   ed_med_order_excl_chemo_timeframe_comb <- lapply(ed_med_order_excl_chemo_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("med_", snomed_destin1), 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!snomed_destin1=="" & !is.na(snomed_destin1) & is.na(snomed_chemo_cat))))
 
@@ -178,11 +178,11 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   # reshaping - create ed med order count vars 
 
   ed_med_order_anti_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x) 
-    if(nrow(x[!snomed_anti_cat=="" & !is.na(snomed_anti_cat)])>0) {dcast.data.table(x, outcome_id + empi + pred_date ~  
+    if(nrow(x[!snomed_anti_cat=="" & !is.na(snomed_anti_cat)])>0) {dcast.data.table(x, outcome_id + empi + t0_date ~  
     paste0("med_anti_", snomed_anti_cat),
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!snomed_anti_cat=="" & !is.na(snomed_anti_cat)))} else {
-      data.table(empi = character(0), outcome_id = numeric(0), pred_date=numeric(0))})
+      data.table(empi = character(0), outcome_id = numeric(0), t0_date=numeric(0))})
 
   ed_med_order_anti_timeframe_comb <- feature_var_format(ed_med_order_anti_timeframe_comb)
 
@@ -208,7 +208,7 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
     nrow(ed_order_timeframe_comb[[x]][!is.na(snomed_chemo_cat)])>0))) {
      # XXX NOTE: ED Med order count vars == sum of ed cc dummies over timeperiod in question
      ed_med_order_chemo_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x) 
-       dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("med_chemo_", snomed_chemo_cat) ,
+       dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_chemo_", snomed_chemo_cat) ,
        fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
        subset=.(!snomed_chemo_cat=="" & !is.na(snomed_chemo_cat))))
 
@@ -249,7 +249,7 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
 
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
-  ed <- ed[cohort, mget(names(ed)), on=c("outcome_id", "empi", "pred_date")]
+  ed <- ed[cohort, mget(names(ed)), on=c("outcome_id", "empi", "t0_date")]
   
   non_days_to_last_var <- setdiff(names(ed),grep("days_to_last", names(ed),value=T))
   set_na_zero(ed, subset_col=non_days_to_last_var)
@@ -257,10 +257,10 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  ed_integer <- ed[, mget(setdiff(names(ed), c("outcome_id", "pred_date", "empi")))]
+  ed_integer <- ed[, mget(setdiff(names(ed), c("outcome_id", "t0_date", "empi")))]
   ed_integer[, names(ed_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  ed <- cbind(ed[, mget(c("outcome_id", "pred_date", "empi"))], ed_integer)
+  ed <- cbind(ed[, mget(c("outcome_id", "t0_date", "empi"))], ed_integer)
 
   ed[, ':='(ed_time_min=min(time_min_ed_enc,time_min_ed_order), 
     ed_time_max=max(time_max_ed_enc, time_max_ed_order))]

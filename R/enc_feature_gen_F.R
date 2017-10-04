@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param file_date_var
 #' @param cohort
 #' @param cohort_key_var_merge
@@ -58,7 +57,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
     assign(DT,  foverlaps(get(DT), cohort[, mget(cohort_key_var_merge)],
       by.x=c("empi", "adm_date_1", "adm_date_2"), nomatch=0))
 
-    get(DT)[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+    get(DT)[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
       units="days"))]
 
   }
@@ -66,7 +65,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # implement leakage control 
   for (DT in c("enc_class", "ed", "op", "ip")) { 
     if (!is.na(leak_enc_day)) {
-      assign(DT,  get(DT)[!(pred_date-adm_date_1<=leak_enc_day)])
+      assign(DT,  get(DT)[!(t0_date-adm_date_1<=leak_enc_day)])
     }
   }
 
@@ -109,7 +108,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - create encounter dummies (ed/ip/op)
   for (DT in c("ed", "op", "ip")) {
   	assign(paste0("enc_",DT, "_timeframe_comb"), lapply(enc_class_timeframe_comb, 
-      function(x) dcast.data.table(x, outcome_id +  empi + pred_date ~ 
+      function(x) dcast.data.table(x, outcome_id +  empi + t0_date ~ 
       get(paste0("enc_",DT)),fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
       value.var = "time_diff")))
 
@@ -132,7 +131,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   #-------------------------------------------------------------------------------#
   # reshaping - create clinic_name dummies for all clinic encounters
   clinic_name_timeframe_comb <- lapply(enc_class_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~ clinic_name, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~ clinic_name, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
       value.var = "time_diff"))
 
@@ -141,22 +140,22 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   lapply(clinic_name_timeframe_comb, function(x) x[, c("NA", "NA_days_to_last") := NULL])
   
   mapply(function(x, name_ext) setnames(x, setdiff(names(x), c("empi", "outcome_id", 
-    "pred_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.name..", 
-    setdiff(names(x), c("empi", "outcome_id", "pred_date")), name_ext)), 
+    "t0_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.name..", 
+    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext)), 
     x=clinic_name_timeframe_comb, name_ext_extended)
 
   #-------------------------------------------------------------------------------#
   # reshaping - create clinic_cat dummies for all clinic encounters
   clinic_cat_timeframe_comb <- lapply(enc_class_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~ clinic_cat, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~ clinic_cat, 
      fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
       value.var = "time_diff"))
   clinic_cat_timeframe_comb <- feature_var_format(clinic_cat_timeframe_comb)
 
   lapply(clinic_cat_timeframe_comb, function(x) x[, c("NA", "NA_days_to_last") := NULL])
   mapply(function(x, name_ext) setnames(x, setdiff(names(x), c("empi", "outcome_id", 
-    "pred_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.cat..", 
-    setdiff(names(x), c("empi", "outcome_id", "pred_date")), name_ext)), 
+    "t0_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.cat..", 
+    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext)), 
     x=clinic_cat_timeframe_comb, name_ext_extended)
 
   #-------------------------------------------------------------------------------#
@@ -164,7 +163,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   for (DT in c("ed", "op", "ip")) {
   	assign(paste0("visit_",DT, "_timeframe_comb"), lapply(get(paste0(
     DT,"_timeframe_comb")), function(x) dcast.data.table(x, outcome_id + empi + 
-    pred_date ~ get(paste0("enc_",DT)), 
+    t0_date ~ get(paste0("enc_",DT)), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff")))
 
   assign(paste0("visit_",DT, "_timeframe_comb"), 
@@ -183,7 +182,7 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - number of inpatient days
 	ip_days_timeframe_comb <- lapply(ip_timeframe_comb, function(x) 
     x[, .(ip_days=sum(los)),
-    by = c("outcome_id", "empi", "pred_date")])
+    by = c("outcome_id", "empi", "t0_date")])
   mapply(function(x, name_ext) setnames(x, c("ip_days"), 
     paste0("enc_enc.los..ip", name_ext)), x=ip_days_timeframe_comb,
     name_ext_extended)
@@ -202,17 +201,17 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
-  enc <- enc[cohort, mget(names(enc)), on=c("outcome_id", "empi", "pred_date")]
+  enc <- enc[cohort, mget(names(enc)), on=c("outcome_id", "empi", "t0_date")]
   
   non_days_to_last_var <- setdiff(names(enc),grep("days_to_last", names(enc),value=T))
   set_na_zero(enc, subset_col=non_days_to_last_var)
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  enc_integer <- enc[, mget(setdiff(names(enc), c("outcome_id", "pred_date", "empi")))]
+  enc_integer <- enc[, mget(setdiff(names(enc), c("outcome_id", "t0_date", "empi")))]
   enc_integer[, names(enc_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  enc <- cbind(enc[, mget(c("outcome_id", "pred_date", "empi"))], enc_integer)
+  enc <- cbind(enc[, mget(c("outcome_id", "t0_date", "empi"))], enc_integer)
 
   enc[, ':='(enc_time_min=time_min, enc_time_max=time_max)]
   

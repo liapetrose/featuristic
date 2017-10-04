@@ -54,10 +54,10 @@
   enc_oncdrs_rpdr[, grep("enc_count_aggregated", names(enc_oncdrs_rpdr), value=T):=NULL]
 
   # categorize variables to ensure proper treatment in models -- integer 
-  enc_oncdrs_rpdr_integer <- enc_oncdrs_rpdr[, mget(setdiff(names(enc_oncdrs_rpdr), c("outcome_id", "pred_date", "empi", "enc_time_min", "enc_time_max")))]
+  enc_oncdrs_rpdr_integer <- enc_oncdrs_rpdr[, mget(setdiff(names(enc_oncdrs_rpdr), c("outcome_id", "t0_date", "empi", "enc_time_min", "enc_time_max")))]
   enc_oncdrs_rpdr_integer[, names(enc_oncdrs_rpdr_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  enc_oncdrs_rpdr <- cbind(enc_oncdrs_rpdr[, mget(c("outcome_id", "pred_date", "empi", "enc_time_max", "enc_time_min"))], enc_oncdrs_rpdr_integer)
+  enc_oncdrs_rpdr <- cbind(enc_oncdrs_rpdr[, mget(c("outcome_id", "t0_date", "empi", "enc_time_max", "enc_time_min"))], enc_oncdrs_rpdr_integer)
 
 
   return (enc_oncdrs_rpdr)

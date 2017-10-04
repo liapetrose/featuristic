@@ -1,7 +1,7 @@
 Package: featuristic
 Title: Generate ehR-based feature sets.
-Version: 0.0.0.9000
-Authors@R: c(person("Clara", "Marquardt", email = "marquardt.clara@gmail.com", role = c("cre")), person("Shreyas", "Lakhtakia", email="slakhtakia@bwh.harvard.edu", role=c("aut")))
+Version: 0.0.0.1
+Authors@R: c(person("Shreyas", "Lakhtakia", email="slakhtakia@bwh.harvard.edu", role=c("aut")),person("Clara", "Marquardt", email = "marquardt.clara@gmail.com", role = c("cre")))
 Description: \
 Depends:
     R (>= 3.3.1)
@@ -15,22 +15,15 @@ Imports:
     diagram,
     dplyr,
     futile.logger,
-    ggplot2,
-    icd,
     lubridate,
     magrittr,
     NCmisc,
-    parallel,
     pbapply,
     plyr,
     reader,
     reshape,
     reshape2,
     stringr,
-    taxize,
     tidyr,
     zoo,
-    RColorBrewer,
-    imputeMissings,
-    ehR
-Remotes: sysmedlab/ehR
+    imputeMissings

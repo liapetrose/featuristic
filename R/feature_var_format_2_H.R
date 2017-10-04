@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param dt 
 #' @param timeframe_split_var 
 #' @return

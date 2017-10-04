@@ -1,11 +1,10 @@
 #----------------------------------------------------------------------------#
 
-#' @title Verify the correct compilation of a feature set. 
+#' @title Verify the correct construction of a feature category dataset. 
 #'
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param feature_dt_name 
 #' @param cohort_dt 
 #' @param cohort_key_var_list 
@@ -14,7 +13,7 @@
 #' @return
 #' @examples
 
-feature_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_key_var_list, 
+feature_dataset_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_key_var_list, 
   extra_var_list, save_name=TRUE) {
 
   # number of obs check
@@ -24,8 +23,8 @@ feature_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_key_var_
   ifelse(nrow(cohort_dt)==nrow(feature_dt), print("correct number of rows"), 
     print("incorrect number of rows"))
 
-  # complete check
-  feature_missing <- sum(sapply(feature_dt, function(y) sum(is.na(y))))
+  # completeness check
+  feature_missing      <- sum(sapply(feature_dt, function(y) sum(is.na(y))))
   feature_missing_perc <- (feature_missing/(nrow(feature_dt[, 
     setdiff(names(feature_dt), c(cohort_key_var_list, extra_var_list)), with=F])*
     ncol(feature_dt[,setdiff(names(feature_dt), c(cohort_key_var_list, 
@@ -35,6 +34,7 @@ feature_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_key_var_
   print(sprintf("%s file contains %f missing values %f perc missing values -- %f complete observations", 
     feature_dt_name,feature_missing, feature_missing_perc, complete))
 
+  # save the feature set
   if (save_name==TRUE) {
 
     ps("feature names saved: %s", paste0(temp_folder, "var_name_raw_", 
@@ -42,12 +42,14 @@ feature_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_key_var_
 
     write.csv(data.table(var_name=names(feature_dt), 
        var_type=sapply(feature_dt, function(x) class(x)[1])), 
-      paste0(temp_folder, "var_name_raw_", feature_dt_name, "_", cohort_name, ".csv"), 
-      row.names=F)
-
+        paste0(temp_folder, "var_name_raw_", feature_dt_name, "_", cohort_name, ".csv"), 
+        row.names=F)
+  
+    # tabulate the feature types
     var_dt <- data.table(var_type=sapply(feature_dt[, 
       setdiff(names(feature_dt), 
       c(cohort_key_var_list, extra_var_list)), with=F], function(x) class(x)[1]))
+    
     print(table_mod(var_dt$var_type))
 
   }

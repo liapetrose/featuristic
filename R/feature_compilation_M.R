@@ -5,24 +5,35 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
-#' @param control_file_path Path to control file (see template incl. in package)
+#' @param cohort_path 
+#' @param control_path 
+#' @param data_path    
+#' @param feature_path  
+#' @param feature_set_id     
+#' @param feature_set_prefix 
 #' @return
 #' @examples
 
-feature_compilation <- function(control_file_path) {
+feature_compilation <- function(cohort_path, control_path, data_path, feature_path, 
+	feature_set_id, feature_set_prefix) {
+
 	
-	# set-up
-	#-------------------------------------------------#
+	#----------------------------------------------------------------------------#
+	#                		             SETUP                                   #
+	#----------------------------------------------------------------------------#
 	current_date <- as.character(format(Sys.time(), "%d_%m_%Y")) 
 	
-	print(control_file_path)
-	source(control_file_path) # sourced globally
-	
+	# source the control / data scripts
+	print(control_path)
+	source(control_path)
+
+	print(data_path)
+	source(data_path)
+
 	# initialise
 	#-------------------------------------------------#	
 	feature_initialisation()
-	
+
 	#----------------------------------------------------------------------------#
 	#                        COMPILE THE FEATURES                               #
 	#----------------------------------------------------------------------------#
@@ -31,17 +42,7 @@ feature_compilation <- function(control_file_path) {
     #----------------------------------------------------------------------------#
 	invisible(lapply (compile_list, function(x) assign(paste0(x, "_feature"), 
 	  setkey(as.data.table(readRDS(paste0(modified_folder, x, "_feature_", 
-	  cohort_name_assemble, ".Rds"))), outcome_id), envir = sys.frame(sys.parent(n=2)))))
-
-	# temp section - ensure backward compatibility
-	#-----------------------------#
-    inv_lapply(mget(paste0(compile_list, "_feature")), function(x) {
-
-    	if("outcome_date" %in% names(x)) {
-    		setnames(x, "outcome_date", "pred_date")
-    	}
-    
-    })
+	  feature_set_name, ".Rds"))), outcome_id), envir = sys.frame(sys.parent(n=2)))))
 
 	# merge the feature files with the cohort - merge on outcome_id & merge in 
 	# cohort extra columns
@@ -83,11 +84,11 @@ feature_compilation <- function(control_file_path) {
 	raw_feature_coll <- feature_coll(pred_set)
 
 	# save (temp)
-	saveRDS(pred_set, paste0(temp_folder, "pred_set_temp_", cohort_name, ".Rds"))
+	saveRDS(pred_set, paste0(temp_folder, "pred_set_temp_", feature_set_name, ".Rds"))
 	saveRDS(cohort_extra_col, paste0(temp_folder, "cohort_extra_col_temp_", 
-		cohort_name, ".Rds"))
+		feature_set_name, ".Rds"))
 
-	write.csv(raw_feature_coll, paste0(temp_folder, "raw_feature_coll_", cohort_name, "_", 
+	write.csv(raw_feature_coll, paste0(temp_folder, "raw_feature_coll_", feature_set_name, "_", 
 		current_date, ".csv"), row.names=F)
    
 	# subset features - missingess/completeness
@@ -97,8 +98,8 @@ feature_compilation <- function(control_file_path) {
 
 	# subset features - feature selection (manual)
 	#---------------------------------------------#
-	var_list <- paste(paste0(variable_list[include==1]$var_cat, "xx"), collapse="|")
-	col_omit_select <- which(!(gsub("\\.\\.", "xx", colnames(pred_set)) %like% var_list))
+	var_list         <- paste(paste0(variable_list[include==1]$var_cat, "xx"), collapse="|")
+	col_omit_select  <- which(!(gsub("\\.\\.", "xx", colnames(pred_set)) %like% var_list))
 	col_omit_select  <- names(pred_set[, col_omit_select , with=F])
 	col_omit_select  <- setdiff(col_omit_select , union(cohort_key_var, names(cohort_extra_col)))
 
@@ -168,7 +169,7 @@ feature_compilation <- function(control_file_path) {
 	# deal with missing (numeric data)
    	#---------------------------------------------#
    	if (length(num_factor_var)>0) {
-		pred_set_missing <- sapply(pred_set[, mget(c(num_factor_var))], function(y) sum(is.na(y)))
+		pred_set_missing  <- sapply(pred_set[, mget(c(num_factor_var))], function(y) sum(is.na(y)))
 	} else {
 		pred_set_missing  <- 0
 	}
@@ -177,7 +178,7 @@ feature_compilation <- function(control_file_path) {
 
 	# deal with 0,1 data (imputed dummy data)
 	#---------------------------------------------#
-	pred_set_zero <- sapply(pred_set[, mget(indic_var)], function(y) sum(y==0, na.rm=T))
+	pred_set_zero      <- sapply(pred_set[, mget(indic_var)], function(y) sum(y==0, na.rm=T))
 	pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=0)	
 
 
@@ -208,8 +209,8 @@ feature_compilation <- function(control_file_path) {
 	col_omit_missing_name <- names(col_omit_missing)
 	col_omit_zero_name    <- names(col_omit_zero)
 
-	col_omit_missing <- col_omit_missing[names(col_omit_missing) %in% col_omit_missing_name]
-	col_omit_zero    <- col_omit_zero[names(col_omit_zero) %in% col_omit_zero_name]
+	col_omit_missing 	  <- col_omit_missing[names(col_omit_missing) %in% col_omit_missing_name]
+	col_omit_zero         <- col_omit_zero[names(col_omit_zero) %in% col_omit_zero_name]
 
 	col_omit <- unique(union(col_omit_missing_name, col_omit_zero_name))
 
@@ -259,7 +260,6 @@ feature_compilation <- function(control_file_path) {
 
 	} 
 
-
     # Median Imputation
 	# ----------------------------------------------------------------------------#
 	if (fill_na==TRUE) {
@@ -290,17 +290,17 @@ feature_compilation <- function(control_file_path) {
 	# SAVE
 	#---------------------------------------------#
 	saveRDS(pred_set, file = paste0(modified_folder, "pred_set_raw_", 
-		cohort_name, ".Rds"))
+		feature_set_name, ".Rds"))
 
 	write.csv(as.data.table(names(pred_set)), file=paste0(output_folder, 
-		"pred_set_var_name_raw_", cohort_name, ".csv"),row.names=F)
+		"pred_set_var_name_raw_", feature_set_name, ".csv"),row.names=F)
 
 	write.csv(unique(data.table(var_name=c(col_omit_missing_name, "x"), perc=c(col_omit_missing, "_")))[order(-perc)],
-	 file=paste0(output_folder, "pred_set_col_omit_missing_", cohort_name, ".csv"),row.names=F)
+	 file=paste0(output_folder, "pred_set_col_omit_missing_", feature_set_name, ".csv"),row.names=F)
 	write.csv(unique(data.table(var_name=c(col_omit_zero_name,"x"), perc=c(col_omit_zero, "_")))[order(-perc)], 
-		file=paste0(output_folder, "pred_set_col_omit_zero_", cohort_name, ".csv"),row.names=F)
+		file=paste0(output_folder, "pred_set_col_omit_zero_", feature_set_name, ".csv"),row.names=F)
 	write.csv(as.data.table(c(col_omit_select, "x")), file=paste0(output_folder, 
-		"pred_set_col_omit_select_", cohort_name, ".csv"),row.names=F)
+		"pred_set_col_omit_select_", feature_set_name, ".csv"),row.names=F)
 
 	#----------------------------------------------------------------------------#
 	#                        FORMAT THE FEATURES                                 #
@@ -311,7 +311,6 @@ feature_compilation <- function(control_file_path) {
 	var_name_raw   <- copy(names(pred_set))
 	var_name_final <- copy(names(pred_set))
 	
-
 	date_col  <- pred_set[, c(which(sapply(pred_set, function(x) 
 		class(x)[1]) %in% c("Date"))), with=F]
     date_col_table <- data.table(date=t(date_col[1]), 
@@ -320,10 +319,10 @@ feature_compilation <- function(control_file_path) {
 	setnames(date_col_table, "date.V1", "date")
 	date_col_table[, date:=as.IDate(date, "%Y-%m-%d")]
 
-	date_col_table <- rbindlist(list(date_col_table[var_name!="pred_date"], 
-		data.table(var_name=c("pred_date_min", "pred_date_max"),
-		date=c(as.IDate(min(pred_set$pred_date), "%Y-%m-%d"), 
-		as.IDate(max(pred_set$pred_date), "%Y-%m-%d")))), use.names=T)
+	date_col_table <- rbindlist(list(date_col_table[var_name!="t0_date"], 
+		data.table(var_name=c("t0_date_min", "t0_date_max"),
+		date=c(as.IDate(min(pred_set$t0_date), "%Y-%m-%d"), 
+		as.IDate(max(pred_set$t0_date), "%Y-%m-%d")))), use.names=T)
 
 	print(date_col_table)
 
@@ -372,10 +371,6 @@ feature_compilation <- function(control_file_path) {
     # remove final _
     var_name_final <- gsub("_$", "", var_name_final)
 	setnames(pred_set,var_name_final)
-
-    # update varname vis 
-    var_name_vis <- copy(var_name_final)
-
 	
 	# Reformat - integer / numeric
 	# ----------------------------------------------------------------------------#
@@ -402,20 +397,18 @@ feature_compilation <- function(control_file_path) {
     setnames(pred_set_final, var_name_final)
 
 	write.csv(final_feature_coll, paste0(output_folder, "final_feature_coll_", 
-		cohort_name, "_", current_date, ".csv"), row.names=F)
+		feature_set_name, "_", current_date, ".csv"), row.names=F)
 
 	# save
 	# ----------------------------------------------------------------------------#
-	saveRDS(pred_set, file = paste0(temp_folder, "pred_set_final_temp_", cohort_name,".Rds"))
-	saveRDS(pred_set_final, file = paste0(modified_folder, "pred_set_final_", cohort_name,".Rds"))
+	saveRDS(pred_set, file = paste0(temp_folder, "pred_set_final_temp_", feature_set_name,".Rds"))
+	saveRDS(pred_set_final, file = paste0(modified_folder, "pred_set_final_", feature_set_name,".Rds"))
 	
-
-
 	# final variable overview
 	# ----------------------------------------------------------------------------#
 
-	pred_set_zero        <- sapply(pred_set_final, function(y) sum(y==0, na.rm=T))
-	pred_set_zero_perc   <- perc(pred_set_zero, (nrow(pred_set)), digit=1)	
+	pred_set_zero             <- sapply(pred_set_final, function(y) sum(y==0, na.rm=T))
+	pred_set_zero_perc   	  <- perc(pred_set_zero, (nrow(pred_set)), digit=1)	
 
 	pred_set_missing          <- sapply(pred_set_final, function(y) sum(is.na(y)))
 	pred_set_missing_perc     <- perc(pred_set_missing, (nrow(pred_set)), digit=1)
@@ -429,215 +422,14 @@ feature_compilation <- function(control_file_path) {
 	
 	# save
 	write.csv(final_var_dt, file = paste0(output_folder, 
-		"pred_set_final_var_name_", cohort_name, ".csv"),row.names=F)
+		"pred_set_final_var_name_", feature_set_name, ".csv"),row.names=F)
 
 
 	# ----------------------------------------------------------------------------#
 	#                          Code V - STATS & OUTPUT                           #
 	# ----------------------------------------------------------------------------#
-
-	# overview stats
-	# ----------------------------------------------------------------------------#
-
-	sink(paste0(output_folder, "feature_stat_temp_", cohort_name, "_", current_date), 
-		split=TRUE)
-
-	# number of features / complete cases
-	feature_count        <- ncol(pred_set_final[, mget(grep("^var", names(pred_set_final), value=T))])
-	feature_unique_count <- length(unique(gsub("(_days_to_last){0,}_timeframe.*", "", names(pred_set_final[, 
-								mget(grep("^var", names(pred_set_final), value=T))]))))
-	obs_count            <- nrow(pred_set_final)
-	obs_count_complete   <- nrow(pred_set_final[complete.cases(pred_set_final[, 
-								mget(grep("^var", names(pred_set_final), value=T))])])
-
-	if (test_train==TRUE) {
-
-		obs_count_train <- nrow(pred_set_final[get(test_train_mod)==1])
-		obs_count_complete_train <- nrow(pred_set_final[complete.cases(pred_set_final[, 
-								mget(grep("^var", names(pred_set_final), value=T))])][get(test_train_mod)==1])
-
-		obs_count_test <- nrow(pred_set_final[get(test_train_mod)==0])
-		obs_count_complete_test <- nrow(pred_set_final[complete.cases(pred_set_final[, 
-								mget(grep("^var", names(pred_set_final), value=T))])][get(test_train_mod)==0])
-
-	}
-
-	cat("\n\n")
-
-	cat(sprintf("final number of features: %d, final number of unique features: %d, final number of obs: %d, 
-		final number of complete obs: %d (perc: %f)", 
-		feature_count, feature_unique_count, 
-		obs_count, obs_count_complete, perc(obs_count_complete, obs_count)))
-
-	cat("\n\n")
-
-	# variable types
-	variable_type <- data.table(var_type=unlist(sapply(pred_set_final, class)))
-	variable_type[, var_type_count:=.N, by=c("var_type")]
-
-	variable_type_var <- data.table(var_type=unlist(sapply(pred_set_final[, mget(grep("^var_", 
-		names(pred_set_final), value=T))], class)))
-	variable_type_var[, var_type_count:=.N, by=c("var_type")]
-	
-	cat("var type all - pred set final")
-	cat("\n")
-	print(unique(variable_type, by=c("var_type")))
-
-	cat("\n\n")
-
-	cat("var type var only - pred set final")
-	cat("\n")
-	print(unique(variable_type_var, by=c("var_type")))
-
-	cat("\n\n")
-
-	# other cols 
-	cat("cohort_extra_col")
-	cat("\n")
-	print(names(cohort_extra_col)[names(cohort_extra_col) %in% 
-		names(pred_set_final)])
-	
-	cat("\n\n")
-
-	cat("other extra_col")
-	cat("\n")
-	print(names(pred_set_final)[!(names(pred_set_final) %like% "^var_" |  
-		names(pred_set_final) %in% names(cohort_extra_col))])
-
-	cat("\n\n")
-
-	sink()
-
- #    output stats
-	# ----------------------------------------------------------------------------#
-
-	# preparation
-    leak_table <- data.table(var_name=leak_list, leak_day=mget(leak_list, 
-    	env=.GlobalEnv))
-
-	# set-up
-	feature_vital_sign <- list()
-	space <- 1
- 
-	# vars
-	feature_vital_sign$cohort_name <- cohort_name
-	feature_vital_sign$cohort_id   <- cohort_id
-
-	list_space("feature_vital_sign")
-
-    feature_vital_sign$id_var_name      <- outcome_id_mod	
-    feature_vital_sign$date_var_name    <- pred_date_mod	
-    feature_vital_sign$outcome_var_name <- outcome_name_mod	
-    feature_vital_sign$cohort_subset    <- cohort_mod	
-
-	list_space("feature_vital_sign")
-    
-    feature_vital_sign$timeperiod_name       <- name_ext_name	
-    feature_vital_sign$timeperiod_count      <- length(name_ext_name)	
-
-	list_space("feature_vital_sign")
- 
-    feature_vital_sign$feature_type             <- compile_list	
-
-    list_space("feature_vital_sign")
-
-    feature_vital_sign$feature_count            <- feature_count
-    feature_vital_sign$feature_unique_count     <- feature_unique_count	
-
-	list_space("feature_vital_sign")
-
-    feature_vital_sign$obs_count                <- obs_count	
-    feature_vital_sign$obs_count_complete       <- obs_count_complete
-
-    if (test_train==TRUE) {
-
-    	feature_vital_sign$obs_count_train               <- obs_count_train	
-    	feature_vital_sign$obs_count_complete_train      <- obs_count_complete_train
-
-    	feature_vital_sign$obs_count_test                <- obs_count_test
-    	feature_vital_sign$obs_count_complete_test       <- obs_count_complete_test
-
-    }
-
-	list_space("feature_vital_sign")
-
-    feature_vital_sign$indic_missing_zero_imputation      <- miss_imp	
-    feature_vital_sign$var_selection                      <- sprintf("%s (omit: %d)", variable_list_file_selection, 
-    															deselect_col)	
-
-    feature_vital_sign$numeric_factor_missing_threshold   <- sprintf("%s (omit: %d)", paste0(unlist(quant_missing_threshold),
-    															collapse=" - "), na_col)	
-    feature_vital_sign$indic_missing_threshold            <- sprintf("%s (omit: %d)", paste0(unlist(indic_missing_threshold),
-    															collapse=" - "), zero_col)
-    feature_vital_sign$missing_imputation                 <- ifelse(fill_na, sprintf("%s (method: %s / perc.values imputed: %f)", as.character(fill_na),
-     															as.character(fill_na_method), as.numeric(impute_value_perc)), sprintf("Missing imputation disabled\n."))	
-
-  
-    list_space("feature_vital_sign")
-
-	feature_vital_sign$leak_day 	      <-  dt_paste(leak_table, "", line_sep=TRUE, length=nrow(leak_table))
- 
-
-    list_space("feature_vital_sign")
-
-	feature_vital_sign$outcome_earliest  <- as.character(as.Date(min(date_col_table[var_name=="pred_date_min", date]),
-												"%Y-%m-%d"))
-	feature_vital_sign$outcome_latest 	 <- as.character(as.Date(max(date_col_table[var_name=="pred_date_max", date]), 
-												"%Y-%m-%d"))
-	feature_vital_sign$feature_earliest  <- as.character(as.Date(min(date_col_table[var_name %like% "min" & 
-												!(var_name %like% "pred_date"), date]), "%Y-%m-%d"))
-	feature_vital_sign$feature_latest    <- as.character(as.Date(max(date_col_table[var_name %like% "max" & !(var_name %like% 
-												"pred_date"), date]), "%Y-%m-%d"))
-
-    list_space("feature_vital_sign")
-
-    feature_vital_sign$feature_earliest_specific <- dt_paste(date_col_table[var_name %like% "min" & !(var_name %like% "pred_date")], "", line_sep=TRUE, 
-    													length=nrow(date_col_table[var_name %like% "min" & !(var_name %like% "pred_date")])) 
-    feature_vital_sign$feature_latest_specific   <- dt_paste(date_col_table[var_name %like% "max" & !(var_name %like% "pred_date")], "", line_sep=TRUE, 
-    													length=nrow(date_col_table[var_name %like% "max" & !(var_name %like% "pred_date")])) 
-
-    list_space("feature_vital_sign")
-
-	# read in vital signs and merge & save
-	#----------------------------------------------------------------------------#
-
-	ps("sucessfully generated feature vital signs")
-
-	# unnest
-	feature_vital_sign <- as.list(unlist(feature_vital_sign))
-	
-	print(head(feature_vital_sign))
-
-	if (file.exists(feature_vital_sign_loc)) {
-			
-		feature_vital_sign_raw <- fread(feature_vital_sign_loc)
-
-		feature_vital_sign_table <- list_table(feature_vital_sign, current_date,
- 			merge=T, old=feature_vital_sign_raw)
-
-		ps("sucessfully generated feature vital signs _table_ (appended)")
-
-		print(head(feature_vital_sign_table))
-
-	} else {
-			
-		feature_vital_sign_table <- list_table(feature_vital_sign, current_date,
- 			merge=F)
-
-		ps("sucessfully generated feature vital signs _table_ (new)")
-
-		print(head(feature_vital_sign_table))
-
-	}
-
-
-	# save
-	write.csv(feature_vital_sign_table, feature_vital_sign_loc, row.names=F, 
-		na="")
-
-
+	feature_overview()
 }
-
 
 #----------------------------------------------------------------------------#
 

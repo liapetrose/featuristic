@@ -1,11 +1,10 @@
 #----------------------------------------------------------------------------#
 
-#' @title Combine data split into different timeframes. 
+#' @title Combine a dataframe split into different timeframes. 
 #'
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param DT_list 
 #' @return
 #' @examples

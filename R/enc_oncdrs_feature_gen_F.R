@@ -50,7 +50,7 @@
 
   # implement leakage control 
   if (!is.na(leak_oncdrs_enc_day)) {
-    enc_oncdrs <- enc_oncdrs[!(pred_date-adm_date_1<=leak_oncdrs_enc_day)]
+    enc_oncdrs <- enc_oncdrs[!(t0_date-adm_date_1<=leak_oncdrs_enc_day)]
   }
 
   #-------------------------------------------------------------------------------#
@@ -69,7 +69,7 @@
     adm_date]), "%Y-%m-%d"))))
 
   enc_type_timeframe_comb <- lapply(enc_oncdrs_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  
+    dcast.data.table(x, outcome_id + empi + t0_date ~  
       paste0("enc.dfci_enc.enc_enc.count_enc.type.count..", 
       enc_type), length, subset=.(!enc_type=="" & !is.na(enc_type))))
 
@@ -80,7 +80,7 @@
     name_ext))), DT=enc_type_timeframe_comb ,  name_ext_extended))
 
   enc_dept_timeframe_comb <- lapply(enc_oncdrs_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  
+    dcast.data.table(x, outcome_id + empi + t0_date ~  
       paste0("enc.dfci_enc.enc_enc.count_enc.department.count..", 
       enc_dept), length, subset=.(!enc_dept=="" & !is.na(enc_dept))))
 
@@ -101,16 +101,16 @@
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
   enc_oncdrs <- enc_oncdrs[cohort, mget(names(enc_oncdrs)), on=c("outcome_id", "empi", 
-    "pred_date")]
+    "t0_date")]
   set_na_zero(enc_oncdrs)
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
   enc_oncdrs_integer <- enc_oncdrs[, mget(setdiff(names(enc_oncdrs), c("outcome_id", 
-    "pred_date", "empi")))]
+    "t0_date", "empi")))]
   enc_oncdrs_integer[, names(enc_oncdrs_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  enc_oncdrs <- cbind(enc_oncdrs[, mget(c("outcome_id", "pred_date", "empi"))], enc_oncdrs_integer)
+  enc_oncdrs <- cbind(enc_oncdrs[, mget(c("outcome_id", "t0_date", "empi"))], enc_oncdrs_integer)
 
   # set names
   var_rename <- setdiff(names(enc_oncdrs), cohort_key_var_merge)

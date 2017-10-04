@@ -47,7 +47,7 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
 
   #-------------------------------------------------------------------------------#
   # age
-  dem[,age:=difftime(pred_date,dob, units="days")/365]
+  dem[,age:=difftime(t0_date,dob, units="days")/365]
   
   # impose variable categories (dem_dem.basic..//dem_dem.basic_race..)
   setnames(dem, setdiff(names(dem), cohort_key_var_merge),
@@ -71,7 +71,7 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   dem_numeric <- dem[, mget(c("dem_dem.basic..age"))]
   dem_numeric[, names(dem_numeric):=lapply(.SD, function(x) as.numeric(round(x, digits=2)))]
 
-  dem <- cbind(dem[, mget(c("outcome_id", "pred_date", "empi"))], dem_factor, 
+  dem <- cbind(dem[, mget(c("outcome_id", "t0_date", "empi"))], dem_factor, 
     dem_numeric)
 
   #-------------------------------------------------------------------------------#

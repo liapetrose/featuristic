@@ -62,12 +62,12 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
   lvs <-foverlaps(lvs, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
     "lvs_date_1", "lvs_date_2"), nomatch=0)
 
-  lvs[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+  lvs[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
   if (!is.na(leak_lvs_day_arg)) {
-    lvs <- lvs[!(pred_date-lvs_date_1<=leak_lvs_day_arg)]
+    lvs <- lvs[!(t0_date-lvs_date_1<=leak_lvs_day_arg)]
   }
   
   #-------------------------------------------------------------------------------#
@@ -89,7 +89,7 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
   # reshaping & generating features - mean, sd, max, min of numeric lvs  impose 
   # feature  categorization ("lvs_value_max/min.."..."_short/_long")
   lvs_timeframe_comb_value <- lapply(lvs_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lvs_cat),list(min, max, mean, sd), value.var="lvs_value"))
 
   invisible(mapply(function(DT,name_ext) setnames(DT, grep("lvs_value", 
@@ -98,7 +98,7 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
     name_ext_extended))
 
   lvs_timeframe_comb_time <- lapply(lvs_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lvs_cat),fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
     value.var = "time_diff"))
 
@@ -146,7 +146,7 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
   
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> NA & round to two decimals
-  lvs <- lvs[cohort, mget(names(lvs)), on=c("outcome_id", "empi", "pred_date")]
+  lvs <- lvs[cohort, mget(names(lvs)), on=c("outcome_id", "empi", "t0_date")]
   
   non_days_to_last_var <- setdiff(names(lvs),grep("days_to_last", names(lvs),value=T))
   set_na_zero(lvs, replace=NA, subset_col=non_days_to_last_var)
@@ -157,10 +157,10 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
   
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  lvs_numeric <- lvs[, mget(setdiff(names(lvs), c("outcome_id", "pred_date", "empi")))]
+  lvs_numeric <- lvs[, mget(setdiff(names(lvs), c("outcome_id", "t0_date", "empi")))]
   lvs_numeric[, names(lvs_numeric):=lapply(.SD, function(x) as.numeric(x))]
 
-  lvs <- cbind(lvs[, mget(c("outcome_id", "pred_date", "empi"))], lvs_numeric)
+  lvs <- cbind(lvs[, mget(c("outcome_id", "t0_date", "empi"))], lvs_numeric)
 
   lvs[, ':='(lvs_time_min=time_min, lvs_time_max=time_max)]
   

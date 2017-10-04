@@ -29,7 +29,6 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   # load the data
   tryCatch(med <- readRDS_merge(med_file_mod_arg), warning=function(w)
     print("no classified med file available for the data sample"))
-    # XXX NOTE: RDS file preserves formatting of empi as character
   
   if (combine==TRUE) {
     tryCatch(med_ext <- readRDS_merge(med_file_mod_ext), warning=function(w)
@@ -84,12 +83,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   med <-foverlaps(med, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
     "med_date_1", "med_date_2"), nomatch=0)
 
-  med[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+  med[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
   if (!is.na(leak_med_day_arg)) {
-    med <- med[!(pred_date-med_date_1<=leak_med_day_arg)]
+    med <- med[!(t0_date-med_date_1<=leak_med_day_arg)]
   }
 
 
@@ -114,12 +113,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   # categorisation ("med_count_adm.." or "med_count_pres.." "..."_short/_long")
 
   med_snomed_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_snomed_timeframe_comb <- lapply(med_snomed_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  med_form + med_destin1, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  med_form + med_destin1, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff", 
     subset=.(!med_destin1=="" & !is.na(med_destin1))))
 
@@ -135,12 +134,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   # reshaping - create med count vars  & impose feature 
   # categorisation ("med_count_adm.." or "med_count_pres.." "..."_short/_long")
   med_atc_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "time_diff"),
     measure=patterns("^atc_cat_"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_atc_timeframe_comb <- lapply(med_atc_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  med_form + med_destin1, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  med_form + med_destin1, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
      subset=.(!med_destin1=="" & !is.na(med_destin1))))
 
@@ -157,12 +156,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   # categorisation ("ed_ed.med.order.count.."..."_short/_long")
 
   med_snomed_excl_anti_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "snomed_anti_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "snomed_anti_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_snomed_excl_anti_timeframe_comb <- lapply(med_snomed_excl_anti_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  med_form + med_destin1, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  med_form + med_destin1, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
      subset=.(!med_destin1=="" & !is.na(med_destin1) & is.na(snomed_anti_cat))))
 
@@ -179,12 +178,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   ## categorisation ("ed_ed.med.order.count.."..."_short/_long")
 
   med_snomed_excl_chemo_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "snomed_chemo_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "snomed_chemo_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_snomed_excl_chemo_timeframe_comb <- lapply(med_snomed_excl_chemo_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  med_form + med_destin1, 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  med_form + med_destin1, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!med_destin1=="" & !is.na(med_destin1) & is.na(snomed_chemo_cat))))
 
@@ -201,16 +200,16 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   ## categorisation ("ed_ed.med.order.count.."..."_short/_long")
 
   med_snomed_anti_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "snomed_anti_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "snomed_anti_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_snomed_anti_timeframe_comb <- lapply(med_snomed_anti_timeframe_comb, function(x) 
-    if(nrow(x[!med_destin1=="" & !is.na(snomed_anti_cat)])>0) { dcast.data.table(x, outcome_id + empi + pred_date ~  
+    if(nrow(x[!med_destin1=="" & !is.na(snomed_anti_cat)])>0) { dcast.data.table(x, outcome_id + empi + t0_date ~  
     med_form + snomed_anti_cat, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!med_destin1=="" & !is.na(snomed_anti_cat)))} else {data.table (empi = character(0), 
-    outcome_id = numeric(0), pred_date=numeric(0))})
+    outcome_id = numeric(0), t0_date=numeric(0))})
 
   med_snomed_anti_timeframe_comb <- feature_var_format(med_snomed_anti_timeframe_comb)
 
@@ -243,10 +242,10 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   ## categorisation ("ed_ed.med.order.count.."..."_short/_long")
 
   med_anti_timeframe_comb <- lapply(med_timeframe_comb, function(x) if(nrow(x[!is.na(snomed_anti_cat)])>0) {
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("..anti_", snomed_anti_cat), 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("..anti_", snomed_anti_cat), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!is.na(snomed_anti_cat)))} else {data.table(empi = character(0), 
-      outcome_id = numeric(0), pred_date=numeric(0))})
+      outcome_id = numeric(0), t0_date=numeric(0))})
 
   med_anti_timeframe_comb <- feature_var_format(med_anti_timeframe_comb)
 
@@ -261,10 +260,10 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   ## categorisation ("ed_ed.med.order.count.."..."_short/_long")
 
   med_chemo_timeframe_comb <- lapply(med_timeframe_comb, function(x) if(nrow(x[!is.na(snomed_chemo_cat)])>0) {
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("..chemo_", snomed_chemo_cat), 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("..chemo_", snomed_chemo_cat), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
      subset=.(!is.na(snomed_chemo_cat)))} else {data.table (empi = character(0), 
-      outcome_id = numeric(0), pred_date=numeric(0))})
+      outcome_id = numeric(0), t0_date=numeric(0))})
 
   med_chemo_timeframe_comb <- feature_var_format(med_chemo_timeframe_comb)
 
@@ -279,15 +278,15 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   ## categorization ("ed_ed.med.order.count.."..."_short/_long")
 
   med_snomed_chemo_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "pred_date", "med_form", "snomed_chemo_cat", "time_diff"),
+    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "med_form", "snomed_chemo_cat", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="med_destin_name", 
     value.name="med_destin"))
 
   med_snomed_chemo_timeframe_comb <- lapply( med_snomed_chemo_timeframe_comb , function(x) 
-    if (nrow(x[!!med_destin1=="" & !is.na(snomed_chemo_cat)])>0) {dcast.data.table(x, outcome_id + empi + pred_date ~  med_form + snomed_chemo_cat, 
+    if (nrow(x[!!med_destin1=="" & !is.na(snomed_chemo_cat)])>0) {dcast.data.table(x, outcome_id + empi + t0_date ~  med_form + snomed_chemo_cat, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
     subset=.(!med_destin1=="" & !is.na(snomed_chemo_cat)))} else {data.table (empi = character(0), 
-      outcome_id = numeric(0), pred_date=numeric(0))})
+      outcome_id = numeric(0), t0_date=numeric(0))})
 
   med_snomed_chemo_timeframe_comb <- feature_var_format(med_snomed_chemo_timeframe_comb)
 
@@ -321,12 +320,12 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   if (nrow(med_timeframe_comb[[length(name_ext_extended)]][!(is.na(chemo_cat_nci)|chemo_cat_nci=="null")])>0) {
 
       med_nci_chemo_timeframe_comb <- lapply(med_timeframe_comb, function(x)
-        melt(x, id.vars =c("outcome_id", "empi", "pred_date", "time_diff"),
+        melt(x, id.vars =c("outcome_id", "empi", "t0_date", "time_diff"),
         measure=patterns("^chemo_cat_nci"), variable.name="chemo_cat_nci_name", 
         value.name="chemo_cat_nci"))
 
       med_nci_chemo_timeframe_comb  <- lapply(med_nci_chemo_timeframe_comb, function(x) 
-        dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("..chemo_nci_", chemo_cat_nci1), 
+        dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("..chemo_nci_", chemo_cat_nci1), 
         fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
         subset=.(!(is.na(chemo_cat_nci1)|chemo_cat_nci1=="null"))))
 
@@ -359,7 +358,7 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
 
   #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
-  med <- med[cohort, mget(names(med)), on=c("outcome_id", "empi", "pred_date")]
+  med <- med[cohort, mget(names(med)), on=c("outcome_id", "empi", "t0_date")]
 
   non_days_to_last_var <- setdiff(names(med),grep("days_to_last", names(med),value=T))
 
@@ -368,10 +367,10 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  med_integer <- med[, mget(setdiff(names(med), c("outcome_id", "pred_date", "empi")))]
+  med_integer <- med[, mget(setdiff(names(med), c("outcome_id", "t0_date", "empi")))]
   med_integer[, names(med_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  med <- cbind(med[, mget(c("outcome_id", "pred_date", "empi"))], med_integer)
+  med <- cbind(med[, mget(c("outcome_id", "t0_date", "empi"))], med_integer)
 
   med[, ':='(med_time_min=time_min, med_time_max=time_max)]
 

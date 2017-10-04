@@ -60,12 +60,12 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   lab <-foverlaps(lab, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
     "lab_date_1", "lab_date_2"), nomatch=0)
 
-  lab[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+  lab[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
   if (!is.na(leak_lab_day_arg)) {
-    lab <- lab[!(pred_date-lab_date_1<=leak_lab_day_arg)]
+    lab <- lab[!(t0_date-lab_date_1<=leak_lab_day_arg)]
   }
 
   #-------------------------------------------------------------------------------#
@@ -87,7 +87,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   # impose feature  categorization ("lab_lab.value_lab.max/min.."..."_short/_long")
   # numeric results
   lab_num_timeframe_comb <- lapply(lab_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lab_cat),list(min, max, mean, sd), value.var="lab_value", 
     subset=.(lab_result_type=="num")))
 
@@ -98,7 +98,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
     name_ext_extended))
 
   lab_num_timeframe_comb_time <- lapply(lab_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lab_cat),fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
     value.var = "time_diff", subset=.(lab_result_type=="num")))
 
@@ -118,7 +118,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   # ("lab_lab.indic_value_max/min.."..."_short/_long")
   # non-numeric results
   lab_cat_timeframe_comb <- lapply(lab_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lab_cat), fun.agg = function(y) sum(as.numeric(y), na.rm=T), 
     value.var=grep("indic", names(x), value=T),
     subset=.(lab_result_type=="cat")))
@@ -129,7 +129,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
     DT=lab_cat_timeframe_comb, name_ext_extended))
 
   lab_cat_timeframe_comb_time <- lapply(lab_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + pred_date  ~ 
+    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
     paste0("..", lab_cat), fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
     value.var = "time_diff", subset=.(lab_result_type=="cat")))
 
@@ -181,7 +181,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   #-------------------------------------------------------------------------------#
   # merge with cohort file - standardize NAs & round to two digits(numeric) vs.
   # convert NAs to 0 (cat variables) 
-  lab <- lab[cohort, mget(names(lab)), on=c("outcome_id", "empi", "pred_date")]
+  lab <- lab[cohort, mget(names(lab)), on=c("outcome_id", "empi", "t0_date")]
 
   lab_num <- lab[, mget(grep("lab.numeric", names(lab), value=T))]
   
@@ -196,7 +196,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   non_days_to_last_var <- setdiff(names(lab_cat),grep("days_to_last", names(lab_cat),value=T))
   set_na_zero(lab_cat, subset_col=non_days_to_last_var)
 
-  lab <- cbind(lab[, .(outcome_id, pred_date, empi)], lab_num, lab_cat)
+  lab <- cbind(lab[, .(outcome_id, t0_date, empi)], lab_num, lab_cat)
   
   setnames(lab, gsub("mean_temp", "mean", names(lab)))
 
@@ -208,7 +208,7 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   lab_numeric <- lab[, mget(grep("lab.numeric", names(lab), value=T))]
   lab_numeric[, names(lab_numeric):=lapply(.SD, function(x) as.numeric(x))]
 
-  lab <- cbind(lab[, mget(c("outcome_id", "pred_date", "empi"))], lab_integer,
+  lab <- cbind(lab[, mget(c("outcome_id", "t0_date", "empi"))], lab_integer,
     lab_numeric)
 
   lab[, ':='(lab_time_min=time_min, lab_time_max=time_max)]

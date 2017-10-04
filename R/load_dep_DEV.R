@@ -8,7 +8,6 @@
 #' @import diagram
 #' @import dplyr
 #' @import futile.logger
-#' @import icd
 #' @import lubridate
 #' @import magrittr
 #' @import NCmisc

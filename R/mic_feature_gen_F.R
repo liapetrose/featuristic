@@ -56,12 +56,12 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   mic <-foverlaps(mic, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
     "mic_date_1" , "mic_date_2"), nomatch=0)
 
-  mic[, time_diff:=as.numeric(difftime(pred_date, get(file_date_var), 
+  mic[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
   if (!is.na(leak_mic_day)) {
-    mic <- mic[!(pred_date-mic_date_1<=leak_mic_day)]
+    mic <- mic[!(t0_date-mic_date_1<=leak_mic_day)]
   }
 
    #-------------------------------------------------------------------------------#
@@ -83,7 +83,7 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - create microbiology features - highest hierarchy - i.e. tier1/tier 2 
   # positive results - count variable 
   mic_result_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  result + 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  result + 
     paste0("mic.", result_tier), 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff"))
   
@@ -102,7 +102,7 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - create microbiology features - lower hierarchy - i.e. tier1/tier 2 
   # positive results by category - count variable 
   mic_result_cat_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  result + 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  result + 
     paste0("mic.", result_tier) + org_genus, 
     fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff"))
 
@@ -119,7 +119,7 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - create microbiology features - resistant tier 1 infections (i.e. 
   ## resistant to at least one antibiotic)
   mic_result_resistant_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("resistant", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("resistant", 
     tier_1_anti_resis), length, subset=.(result_tier=="tier_1" & result=="positive" & 
     tier_1_anti_resis==1)))
 
@@ -132,7 +132,7 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # reshaping - create microbiology features - resistant tier 1 infections --
   # number of infections resistant to -- count only results for which resistant to at least one antibiotic
   mic_result_resistant_count_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + pred_date ~  paste0("resistant_", 
+    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("resistant_", 
     tier_1_anti_resis_count), length, subset=.(result_tier=="tier_1" & result=="positive" & 
     tier_1_anti_resis_count>0)))
   
@@ -147,9 +147,9 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   mic_result_resistant_anti_timeframe_comb <- copy(mic_timeframe_comb)
   mic_result_resistant_anti_timeframe_comb <- lapply(mic_result_resistant_anti_timeframe_comb, 
     function(x) unique(x[, grep("anti_res_", names(x), value=T):=(lapply(.SD, function(y) sum(y, na.rm=T))), 
-    .SDcols=grep("anti_res_", names(x), value=T), by=c("outcome_id", "empi", "pred_date")][, mget(
-    c(grep("anti_res_", names(x), value=T), "outcome_id", "empi", "pred_date"))], 
-    by=c("outcome_id", "empi", "pred_date")))
+    .SDcols=grep("anti_res_", names(x), value=T), by=c("outcome_id", "empi", "t0_date")][, mget(
+    c(grep("anti_res_", names(x), value=T), "outcome_id", "empi", "t0_date"))], 
+    by=c("outcome_id", "empi", "t0_date")))
 
   invisible(mapply(function(DT,name_ext) setnames(DT, grep("anti_res_", 
     names(DT), value=T), 
@@ -170,17 +170,17 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
    #-------------------------------------------------------------------------------#
   # merge with cohort file - empty records -> 0
-  mic <- mic[cohort, mget(names(mic)), on=c("outcome_id", "empi", "pred_date")]
+  mic <- mic[cohort, mget(names(mic)), on=c("outcome_id", "empi", "t0_date")]
 
   non_days_to_last_var <- setdiff(names(mic),grep("days_to_last", names(mic),value=T))
   set_na_zero(mic, subset_col=non_days_to_last_var)
 
    #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
-  mic_integer <- mic[, mget(setdiff(names(mic), c("outcome_id", "pred_date", "empi")))]
+  mic_integer <- mic[, mget(setdiff(names(mic), c("outcome_id", "t0_date", "empi")))]
   mic_integer[, names(mic_integer):=lapply(.SD, function(x) as.integer(x))]
 
-  mic <- cbind(mic[, mget(c("outcome_id", "pred_date", "empi"))], mic_integer)
+  mic <- cbind(mic[, mget(c("outcome_id", "t0_date", "empi"))], mic_integer)
 
   mic[, ':='(mic_time_min=time_min, mic_time_max=time_max)]
 

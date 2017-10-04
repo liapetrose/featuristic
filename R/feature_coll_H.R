@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param dt 
 #' @param cohort_key_var_list 
 #' @param cohort_extra_var_list 
@@ -33,8 +32,8 @@ feature_coll <- function(dt, cohort_key_var_list=cohort_key_var,
 
   temp[, var_count:=.N, by=c("var_cat")]
 
-
-  temp[,var_type:=do.call(paste0, list(unique(var_type),collapse=";")), by=c("var_cat")]
+  temp[, var_type:=do.call(paste0, list(unique(var_type),collapse=";")), 
+    by=c("var_cat")]
 
   temp <- unique(temp, by=c("var_cat"))
   temp <- rbindlist(list(temp, data.table(var_count=sum(temp$var_count), 

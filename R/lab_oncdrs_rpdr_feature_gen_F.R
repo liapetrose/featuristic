@@ -5,7 +5,6 @@
 #' @description \
 #'
 #' @export
-#' @import data.table
 #' @param cohort
 #' @param cohort_key_var_merge
 #' @return
