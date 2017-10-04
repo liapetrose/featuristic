@@ -8,16 +8,10 @@ install_github("sysmedlab/featuristic",dependencies = TRUE)
 library(featuristic)
 ```  
 **Documentation**
+- See https://docs.google.com/document/d/1isXpxsgUR-WMvgUvj-3lhcM4W2qvfuZOUX04ELjX9Cc/edit?usp=sharing for a 
+full documentation
 - See function_overview.csv for an overview of all the functions (and data sets) included in the package 
-- *Usaging the package*
 
-````
-1. Generate a local copy of the control.R template located at featuristic/template/control.R. 
-2. Modify the settings contained in the control.R file (comments provided)
-3. *Construct features - Stage I*
-	feature_construction([path to local version of the control.R file])
-3. *Compile features - Stage II*
-	feature_compilation([path to local version of the control.R file])
 ````
 
 **Datasets**  
@@ -34,7 +28,7 @@ install_github("hadley/devtools")
 - Package is actively being developed and extended
 
 - To contribute:
-````
+```
 # 1. Clone the repo
 git clone https://github.com/sysmedlab/featuristic.git
 
@@ -58,4 +52,4 @@ any changes: 'package_management/contribution_guide.txt'
 # 4. Test by installing from the branch
 library(devtools)
 install_git("git://github.com/sysmedlab/featuristic.git", branch = "[branch name])
-````
+```
