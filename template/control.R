@@ -205,7 +205,7 @@ indic_missing_threshold <- list(30, 50, 40, 30)									  #[MODIFY]
 ##   the overall number of days over which features are to be constructed, e.g.
 ##   with 'timeframe_end'=365L > features are constructed over the year prior to t0
 ## > the specification of additional timeframes results in a splitting of the 
-##   longes timeframe into multiple, non-overlapping sub-timeframes, e.g.
+##   longest timeframe into multiple, non-overlapping sub-timeframes, e.g.
 ##   the day of t0, the day before t0 - 30 days before, 30 days before - 1 year before
 ## > timeframes must be specified in the right order starting with the longest timeframe
 ##   and each timeframe must have a unique '_name' and '_name_abb' (which must start with a '_')
@@ -229,11 +229,11 @@ timeframe_list$timeframe_day_name_abb    <- "_day"
 # [4] leakage
 #----------------------------------------------------------------------------#
 # specify whether or not leakage controls are to be implemented for each of the 
-# feature types, i.e. whether to omit data over a certain timeperiod directly
-# preceeding t0 to prevent information leakage from the future
-## > NA: no data is ommited (all data is used up to and including data recorded
+# feature types, i.e. whether to omit data over a certain time period directly
+# preceding t0 to prevent information leakage from the future
+## > NA: no data is omitted (all data is used up to and including data recorded
 ##   on t0) / 0: data recorded on the day of t0 is NOT used / >1: data recorded on t0 and 
-##   in the x days before t0 is ommited
+##   in the x days before t0 is omitted
 
 ## initialize (DO NOT MODIFY)
 leak_list <- list()                                                                 #[DO NOT MODIFY]
@@ -254,11 +254,16 @@ leak_list$leak_ed_day  					<- 0
 
 
 ## imputation - indicator variables
-# # select whether or not to impute missing indicator variables to 0 (TRUE - impute - ->0 ) 
+##---------------
+# specify whether to impute non-present indicator variables (e.g. a non-occurring diagnosis), i.e.
+# whether to assume that such variables = 0 (mis_imp=TRUE) or are actually missing/unknown (mis_imp=FALSE)
 
 miss_imp         <- TRUE                                                              #[MODIFY]
 
 ## imputation - numeric variables
+# specify whether to impute numeric variables (e.g. a missing lab value) according to the
+# specified median imputation procedure ("fill_na_method") (fill_na=TRUE)
+## > supported imputation procedures: "median_imputation"
 
 fill_na          <- FALSE                                                             #[MODIFY]
 fill_na_method   <- "median_imputation"
