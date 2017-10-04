@@ -1,12 +1,5 @@
+# Load package scripts locally
 #----------------------------------------------------------------------------#
-
-# Purpose:     Load scripts locally
-# Author:      Clara Marquardt
-# Date:        2017
-
-
-#----------------------------------------------------------------------------#
-
 
 #----------------------------------------------------------------------------#
 #                                    CONTROL                                 #
@@ -33,7 +26,6 @@ for (x in list.files(paste0(package_path, "featuristic", "/R"))) {
   source(paste0(package_path, "featuristic", "/R/", x))
 
 }
-
 
 # load datasets locally
 #--------------------------------------# 

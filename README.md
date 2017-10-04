@@ -23,8 +23,6 @@ library(featuristic)
 **Datasets**  
 - *gagne_code*: Icd9 code - gagne comorbidity category crosswalk (http://scholar.harvard.edu/gagne/software/combined-comorbidity-score) [* note the crosswalk included in the package includes gagne categories that are assigned a 0 weight (these are not included in the here referenced, publicly available version of the crosswalk)]
 - *zip_class*: US zip code - city/state crosswalk
-- *flu_data_cdc*: CDC city/state level flu data
-- *variable_list_default*: Default feature groupings, i.e. feature subsets
 
 **Note**
 - Requires the newest version of devtools (https://github.com/hadley/devtools) to be installed
