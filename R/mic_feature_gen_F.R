@@ -175,6 +175,9 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   non_days_to_last_var <- setdiff(names(mic),grep("days_to_last", names(mic),value=T))
   set_na_zero(mic, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(mic),value=T)
+  set_na_zero(mic, subset_col=days_to_last_var, NA)
+
    #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
   mic_integer <- mic[, mget(setdiff(names(mic), c("outcome_id", "t0_date", "empi")))]
@@ -184,9 +187,9 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
   mic[, ':='(mic_time_min=time_min, mic_time_max=time_max)]
 
-  mic[, grep("mic_id$", names(mic), value=T):=NULL]
+  if (length(grep("mic_id$", names(mic), value=T))>0) mic[, grep("mic_id$", names(mic), value=T):=NULL]
 
-  feature_var_format_2(mic)
+  feature_var_format_day_to_last(mic)
 
    #-------------------------------------------------------------------------------#
   # return mic features & delete key files created in function

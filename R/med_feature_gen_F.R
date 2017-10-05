@@ -361,8 +361,10 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   med <- med[cohort, mget(names(med)), on=c("outcome_id", "empi", "t0_date")]
 
   non_days_to_last_var <- setdiff(names(med),grep("days_to_last", names(med),value=T))
-
   set_na_zero(med, subset_col=non_days_to_last_var)
+
+  days_to_last_var <-grep("days_to_last", names(med),value=T)
+  set_na_zero(med, subset_col=days_to_last_var, NA)
 
 
   #-------------------------------------------------------------------------------#
@@ -374,9 +376,9 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
 
   med[, ':='(med_time_min=time_min, med_time_max=time_max)]
 
-  med[, grep("med_id$", names(med), value=T):=NULL]
+  if (length(grep("MED_id$", names(med), value=T))>0) med[, grep("med_id$", names(med), value=T):=NULL]
 
-  feature_var_format_2(med)
+  feature_var_format_day_to_last(med)
 
 
   #-------------------------------------------------------------------------------#

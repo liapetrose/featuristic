@@ -254,6 +254,8 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   non_days_to_last_var <- setdiff(names(ed),grep("days_to_last", names(ed),value=T))
   set_na_zero(ed, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(ed),value=T)
+  set_na_zero(ed, subset_col=days_to_last_var, NA)
 
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
@@ -265,9 +267,9 @@ ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var,
   ed[, ':='(ed_time_min=min(time_min_ed_enc,time_min_ed_order), 
     ed_time_max=max(time_max_ed_enc, time_max_ed_order))]
 
-  ed[, grep("ed_(enc|order)_id$", names(ed), value=T):=NULL]
+  if (length(grep("ed_(enc|order)_id$", names(ed), value=T))>0) ed[, grep("ed_(enc|order)_id$", names(ed), value=T):=NULL]
 
-  feature_var_format_2(ed)
+  feature_var_format_day_to_last(ed)
 
   #-------------------------------------------------------------------------------#
   # return ed & delete key files 

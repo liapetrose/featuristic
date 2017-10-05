@@ -20,19 +20,19 @@ feature_initialisation <- function() {
 	# ----------------------------------------------- #
 
 	# load the settings
-	timeframe_name       	 <- c(unlist(lapply(timeframe_list, function(x) x$name)))
-	timeframe_name_abb   	 <- paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb))))	
-	timeframe_length     	 <- as.integer(c(unlist(lapply(timeframe_list, function(x) x$length))))
+	name_ext_name   <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
+	name_ext   	    <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
+	length     	    <<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
 
-	timeframe_name_ext       <- c("max", timeframe_name)
-	timeframe_name_abb_ext   <- c("_max", timeframe_name_abb)
-	timeframe_length_ext     <- c(timeframe_length[1], timeframe_name_abb)
+	name_ext_name_extemded       <<- c("max", name_ext_name)
+	name_ext_extended            <<- c("_max", name_ext)
+	length_extended              <<- c(max(length), length)
 
 
 	# generate timeframe variables
-	for (i in 1:length(timeframe_length_ext)) {
+	for (i in 1:length(length_extended)) {
 
-		assign(past0("timeframe", timeframe_name_abb_ext[i]), timeframe_length_ext[i],
+		assign(paste0("timeframe", name_ext_extended[i]), length_extended[i],
 			envir = sys.frame(sys.parent(n=3)))
 
 	}
@@ -44,17 +44,17 @@ feature_initialisation <- function() {
 	# main
 	for (i in 1:length(leak_list)) {
 
-		assign(names(leak_list)[i], leak_list[i],
+		assign(names(leak_list)[i], as.integer(leak_list[i][[1]]),
 			envir = sys.frame(sys.parent(n=3)))
 
 	}
 
 	# oncdrs
-	leak_oncdrs_dia_day   <- leak_dia_day
-	leak_oncdrs_chemo_day <- leak_med_day
-	leak_oncdrs_med_day   <- leak_med_day
-	leak_oncdrs_enc_day   <- leak_enc_day
-	leak_oncdrs_lab_day   <- leak_lab_day
+	leak_oncdrs_dia_day   <<- leak_dia_day
+	leak_oncdrs_chemo_day <<- leak_med_day
+	leak_oncdrs_med_day   <<- leak_med_day
+	leak_oncdrs_enc_day   <<- leak_enc_day
+	leak_oncdrs_lab_day   <<- leak_lab_day
 
 	# ----------------------------------------------- #
 	# feature type selection
@@ -63,7 +63,7 @@ feature_initialisation <- function() {
 	# ensure that no 'duplication', i.e. inclusion of standard and 
 	# combined features (i.e. BWH + DFCI datasets)
 	# ----------------------------------
-	modify_selection(selection_raw) <- function() {
+	modify_selection <- function(selection_raw) {
 
 		if ("dia_oncdrs_rpdr" %in% selection_raw)       {
 			selection_raw <- setdiff(selection_raw, c("dia_oncdrs", "dia"))
@@ -81,12 +81,12 @@ feature_initialisation <- function() {
 			selection_raw <- setdiff(selection_raw, c("enc", "enc_oncdrs"))
 		}
 
-		return(selection_mod)	
+		return(selection_raw)	
 
 	} 
 
-	assemble_list <- modify_selection(assemble_list)
-	compile_list  <- modify_selection(compile_list)
+	assemble_list <<- modify_selection(assemble_list)
+	compile_list  <<- modify_selection(compile_list)
 
 	# ----------------------------------------------- #
 	# cohort
@@ -143,6 +143,36 @@ feature_initialisation <- function() {
 	if (!is.na(variable_list_file_selection)) {
 		setnames(variable_list, variable_list_file_selection, "include")
 	}
+
+	# ensure that no 'duplication', i.e. inclusion of standard and 
+	# combined features (i.e. BWH + DFCI datasets)
+	# ---------------------------------
+
+	modify_feature_selection(feature_selection_raw) <- function() {
+
+		if ("dia_oncdrs_rpdr" %in% compile_list)       {
+			feature_selection_raw[file_name=="dia.dfci", include:=0]
+		}
+
+		if ("med_chemo_oncdrs_rpdr" %in% compile_list) {
+			feature_selection_raw[file_name=="chemo.dfci"| file_name=="med.dfci", include:=0]
+		}
+
+		if ("lab_oncdrs_rpdr" %in% selection_raw)  {
+			feature_selection_raw[file_name=="lab.dfci", include:=0]
+		}
+
+		if ("enc_oncdrs_rpdr" %in% selection_raw)     {
+			feature_selection_raw[file_name=="enc.dfci", include:=0]
+		}
+
+		return(feature_selection_raw)	
+
+	} 
+
+	variable_list <- modify_feature_selection(variable_list)
+
+
 
 	# ----------------------------------------------- #
 	# global assignment

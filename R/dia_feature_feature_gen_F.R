@@ -308,6 +308,9 @@
   non_days_to_last_var <- setdiff(names(dia),grep("days_to_last", names(dia),value=T))
   set_na_zero(dia, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(dia),value=T)
+  set_na_zero(dia, subset_col=days_to_last_var, NA)
+
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
   dia_integer <- dia[, mget(setdiff(names(dia), c("outcome_id", "t0_date", "empi")))]
@@ -317,10 +320,10 @@
 
   dia[, ':='(dia_time_min=time_min, dia_time_max=time_max)]
 
-  dia[, grep("dia_id$", names(dia), value=T):=NULL]
+  if (length(grep("dia_id$", names(dia), value=T))>0) dia[, grep("dia_id$", names(dia), value=T):=NULL]
 
   ## deal with date variables
-  feature_var_format_2(dia)
+  feature_var_format_day_to_last(dia)
 
   #-------------------------------------------------------------------------------#
   # return dia & delete key files 

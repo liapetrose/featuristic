@@ -81,37 +81,39 @@ parse_date <- function(dt_vector, column_name_list,column_name_list_new=column_n
   # returns:
   # DT with formatted dates
 
-  if (class(dt_vector)=="data.table") {
+  if (class(dt_vector)[1]=="data.table") {
 
     DT <- dt_vector
 
     lapply(column_name_list, function(x) print(head(DT[!is.na(get(x)) & 
-      as.character(get(x))!="" , get(x)],50)))
+      as.character(get(x))!="" , get(x)],15)))
     lapply(column_name_list, function(x) DT[, c(x):=as.Date(parse_date_time(get(x), 
      c("mdy","ymd","dby","myd", "dmy", "bdy")))])
-    lapply(column_name_list, function(x) print(head(DT[!is.na(get(x)), get(x)],50)))
+    lapply(column_name_list, function(x) print(head(DT[!is.na(get(x)), get(x)],15)))
       setnames(DT, column_name_list, column_name_list_new)
     non_date <- names(DT)[sapply(DT, function(x) sum(is.na(x))==nrow(DT))]
 
     if(length(non_date)>0){
       DT[, c(non_date):=lapply(.SD, function(x) as.character(x)), .SDcols=non_date]
-    }
     
-    print("-----------------")
-    print("following columns not converted to a date:")
-    print(non_date)
-    print("-----------------")
+    
+      print("-----------------")
+      print("following columns not converted to a date:")
+      print(non_date)
+      print("-----------------")
+
+    }
 
   } 
 
-    if (class(dt_vector)=="character") {
+    if (class(dt_vector)[1]=="character") {
 
     string <- dt_vector
 
-    print(string[1:50])
+    print(string[1:15])
     string <- as.Date(parse_date_time(string, 
       c("mdy","ymd","dby","myd", "dmy", "bdy")))
-    print(string[1:50])
+    print(string[1:15])
 
   } 
 
@@ -532,5 +534,71 @@ list_space <- function(list_name, argument="space") {
  assign(argument, count+1, sys.frame(sys.parent(n=1)))
 
 }
+
+
+#----------------------------------------------------------------------------#
+# store_shorten_file
+#----------------------------------------------------------------------------#
+store_shorten_file <- function(DT, test_row) {
+
+  # purpose: 
+  # save copy of DT and replace the DT itself with a shortened version of itself
+  # (useful when debugging scripts - run script with subset of data without changing file names)
+
+
+  # arguments:
+  #  DT: name of DT
+  #  test_row: number of rows to keep in shortened table
+ 
+  # return:
+  #  original DT (name_copy) & shortened table (name) are stored in global environment
+
+  # sample usage:
+  #  store_shorten_file("test")
+
+  assign(paste0(DT, "_copy"), copy(get(DT,sys.frame(sys.parent(n=1)))),sys.frame(sys.parent(n=1)))
+  assign(DT, get(DT,sys.frame(sys.parent(n=1)))[1:test_row], sys.frame(sys.parent(n=1)))
+
+}
+
+#----------------------------------------------------------------------------#
+# inv_lapply
+#----------------------------------------------------------------------------#
+
+inv_lapply <- function(X, FUN,...) {
+
+  # purpose: 
+  # quiet lapply,i.e.suppress output (to be used when modifying in place)
+
+  # arguments:
+  #  normal lapply arguments
+ 
+  # sample usage
+  #  inv_lapply(list("aa","ba"),function(x) gsub("a","",x))
+
+  invisible(lapply(X, FUN,...))
+
+}
+
+#----------------------------------------------------------------------------#
+# inv_mapply
+#----------------------------------------------------------------------------#
+
+inv_mapply <- function(FUN,...) {
+
+  # purpose: 
+  # quiet mapply,i.e.suppress output (to be used when modifying in place)
+
+  # arguments:
+  #  normal mapply arguments
+ 
+  # sample usage
+  #  inv_mapply(list("aa","ba"),function(x) gsub("a","",x))
+
+  invisible(mapply(FUN,...))
+
+}
+
+
 
 #----------------------------------------------------------------------------#

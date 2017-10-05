@@ -151,6 +151,9 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
   non_days_to_last_var <- setdiff(names(lvs),grep("days_to_last", names(lvs),value=T))
   set_na_zero(lvs, replace=NA, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(lvs),value=T)
+  set_na_zero(lvs, subset_col=days_to_last_var, NA)
+
   lvs[, grep("lvs_lvs.value", names(lvs), value=T):=lapply(.SD, function(x) 
     round(x, digits=2)), .SDcols=grep("lvs_lvs.value", names(lvs))]
   setnames(lvs, gsub("mean_temp", "mean", names(lvs)))
@@ -164,10 +167,10 @@ lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_fi
 
   lvs[, ':='(lvs_time_min=time_min, lvs_time_max=time_max)]
   
-  lvs[, grep("lvs_id$", names(lvs), value=T):=NULL]
+  if (length(grep("lvs_id$", names(lvs), value=T))>0) lvs[, grep("lvs_id$", names(lvs), value=T):=NULL]
 
   ## deal with date variables
-  feature_var_format_2(lvs)
+  feature_var_format_day_to_last(lvs)
 
   #-------------------------------------------------------------------------------#
   # return lvs & delete key files 

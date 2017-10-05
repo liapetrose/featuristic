@@ -8,24 +8,23 @@ install_github("sysmedlab/featuristic",dependencies = TRUE)
 library(featuristic)
 ```  
 **Documentation**
-- See https://docs.google.com/document/d/1isXpxsgUR-WMvgUvj-3lhcM4W2qvfuZOUX04ELjX9Cc/edit?usp=sharing for a 
-full documentation
-- See function_overview.csv for an overview of all the functions (and data sets) included in the package 
+- See https://docs.google.com/document/d/1isXpxsgUR-WMvgUvj-3lhcM4W2qvfuZOUX04ELjX9Cc/edit?usp=sharing 
+for a step-by-step guide on how to use the package
+- See the _function_overview.csv_ file in this repository for an overview of all 
+the functions (and data sets) included in the package 
 
 ````
-
 **Datasets**  
 - *gagne_code*: Icd9 code - gagne comorbidity category crosswalk (http://scholar.harvard.edu/gagne/software/combined-comorbidity-score) [* note the crosswalk included in the package includes gagne categories that are assigned a 0 weight (these are not included in the here referenced, publicly available version of the crosswalk)]
 - *zip_class*: US zip code - city/state crosswalk
 
-**Note**
+**Miscellaneous Notes**
 - Requires the newest version of devtools (https://github.com/hadley/devtools) to be installed
 ```
 library(devtools)  
 install_github("hadley/devtools")
 ```
 **Development**
-- Package is actively being developed and extended
 
 - To contribute:
 ```
@@ -35,7 +34,7 @@ git clone https://github.com/sysmedlab/featuristic.git
 # 2. Make/Save any changes 
 - Ensure that all dependencies are included in @import statements at the function top and are 
 listed in the Imports (CRAN Dependency)/ Remotes (Github Dependency) fields of the DESCRIPTION file
-- Recompile the package by executing the 'package_management/package_update.sh' script (Note: Prior to 
+- Recompile the package by executing the 'package_management /package_update.sh' script (Note: Prior to 
 compilation all dependencies need to be (manually) installed)
 - Confirm that the compilation was successful by checking the 'package_management/package_update.Rout' 
 file and the 'function_overview.csv'

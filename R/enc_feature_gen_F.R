@@ -206,6 +206,9 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   non_days_to_last_var <- setdiff(names(enc),grep("days_to_last", names(enc),value=T))
   set_na_zero(enc, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(enc),value=T)
+  set_na_zero(enc, subset_col=days_to_last_var, NA)
+
   #-------------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
   enc_integer <- enc[, mget(setdiff(names(enc), c("outcome_id", "t0_date", "empi")))]
@@ -215,9 +218,9 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
   enc[, ':='(enc_time_min=time_min, enc_time_max=time_max)]
   
-  enc[, grep("enc_id$|visit_id$", names(enc), value=T):=NULL]
+  if (length(grep("enc_id$|visit_id$", names(enc), value=T))>0) enc[, grep("enc_id$|visit_id$", names(enc), value=T):=NULL]
 
-  feature_var_format_2(enc)
+  feature_var_format_day_to_last(enc)
 
   #-------------------------------------------------------------------------------#
   # return utilization files & delete key files created in function

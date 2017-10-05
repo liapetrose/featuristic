@@ -24,11 +24,11 @@ feature_construction <- function(cohort_path, control_path, data_path, feature_p
 	current_date <- as.character(format(Sys.time(), "%d_%m_%Y")) 
 	
 	# source the control / data scripts
-	print(control_path)
-	source(control_path)
-
 	print(data_path)
 	source(data_path)
+	
+	print(control_path)
+	source(control_path)
 
 	# initialise
 	#-------------------------------------------------#	

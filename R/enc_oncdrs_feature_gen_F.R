@@ -120,7 +120,7 @@
 
   enc_oncdrs[, ':='(enc_oncdrs_time_min=time_min, enc_oncdrs_time_max=time_max)]
 
-  enc_oncdrs[, grep("enc_id$", names(enc_oncdrs), value=T):=NULL]
+  if (length(grep("enc_id$", names(enc_oncdrs), value=T))>0) enc_oncdrs[, grep("enc_id$", names(enc_oncdrs), value=T):=NULL]
 
   #-------------------------------------------------------------------------------#
   # return enc_oncdrs & delete key files 

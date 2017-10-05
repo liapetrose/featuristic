@@ -61,8 +61,8 @@ prc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   # return as list (...timeframe_comb)
   invisible(timeframe_split(list("prc"), "prc_date"))
 
-  name_ext_extended <- name_ext_extended[sapply(prc_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
+  name_ext_extended  <- name_ext_extended[sapply(prc_timeframe_comb, nrow)!=0]
+  name_ext           <- name_ext_extended[2:length(name_ext_extended)]
   prc_timeframe_comb <- prc_timeframe_comb[sapply(prc_timeframe_comb, nrow)!=0]
 
   time_min <- min(do.call("c", lapply(prc_timeframe_comb, function(x) as.Date(min(x[, 
@@ -120,6 +120,9 @@ prc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   non_days_to_last_var <- setdiff(names(prc),grep("days_to_last", names(prc),value=T))
   set_na_zero(prc, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(prc),value=T)
+  set_na_zero(prc, subset_col=days_to_last_var, NA)
+ 
   #-------------------------------------------------------------------------#
   # categorize variables to ensure proper treatment in models -- integer 
   prc_integer <- prc[, mget(setdiff(names(prc), c("outcome_id", "t0_date", "empi")))]
@@ -129,10 +132,10 @@ prc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
   prc[, ':='(prc_time_min=time_min, prc_time_max=time_max)]
 
-  prc[, grep("prc_id$", names(prc), value=T):=NULL]
+  if (length(grep("prc_id$", names(prc), value=T))>0) prc[, grep("prc_id$", names(prc), value=T):=NULL]
 
   ## deal with date variables
-  feature_var_format_2(prc)
+  feature_var_format_day_to_last(prc)
 
   #-------------------------------------------------------------------------#
   # return prc & delete key files

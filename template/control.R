@@ -13,9 +13,9 @@
 ## > these folders should be located in the project-specific folder on 
 # the zolab server 
 
-temp_folder           <- "/data/zolab/featuristic_sample/temp/"              #[MODIFY]
-modified_folder       <- "/data/zolab/featuristic_sample/modified_data/"     #[MODIFY]
-output_folder         <- "/data/zolab/featuristic_sample/output/"            #[MODIFY]
+temp_folder           <- "/data/zolab/featuristic/test_project/temp/"              #[MODIFY]
+modified_folder       <- "/data/zolab/featuristic/test_project/modified/"          #[MODIFY]
+output_folder         <- "/data/zolab/featuristic/test_projects/output/"            #[MODIFY]
 
 # [B] data 
 #----------------------------------------------------------------------------#
@@ -31,36 +31,28 @@ output_folder         <- "/data/zolab/featuristic_sample/output/"            #[M
 # --------------           
 
 ## > Generate demographic features
-dem_file_mod <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_pe, 
-					rpdr_dem_master_icmp, rpdr_dem_master_hdlab)  
+dem_file_mod <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_dfci)  
 
 ## > Generate microbiology features
-mic_file_mod <- list(rpdr_mic_master_bwh_ed_100k, rpdr_mic_master_pe, 
-					rpdr_mic_master_icmp, rpdr_mic_master_hdlab)  
+mic_file_mod <- list(rpdr_mic_master_bwh_ed_100k, rpdr_mic_master_dfci)  
 
 ## > Generate diagnosis features
-dia_file_mod <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_pe, 
-					rpdr_dia_master_icmp, rpdr_dia_master_hdlab)           
+dia_file_mod <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
 
 ## > Generate encounter features
-enc_file_mod <- list(rpdr_enc_master_bwh_ed_100k, rpdr_enc_master_pe, 
-					rpdr_enc_master_icmp, rpdr_enc_master_hdlab)
+enc_file_mod <- list(rpdr_enc_master_bwh_ed_100k, rpdr_enc_master_dfci)
 
 ## > Generate vital sign features
-lvs_file_mod <- list(rpdr_lvs_master_bwh_ed_100k, rpdr_lvs_master_pe, 
-					rpdr_lvs_master_icmp, rpdr_lvs_master_hdlab) 
+lvs_file_mod <- list(rpdr_lvs_master_bwh_ed_100k, rpdr_lvs_master_dfci) 
 
 ## > Generate procedure features
-prc_file_mod <- list(rpdr_prc_master_bwh_ed_100k, rpdr_prc_master_pe,
-					rpdr_prc_master_icmp, rpdr_prc_master_hdlab)
+prc_file_mod <- list(rpdr_prc_master_bwh_ed_100k, rpdr_prc_master_dfci)
 
 ## > Generate medication features
-med_file_mod <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_pe, 
-					rpdr_med_master_icmp, rpdr_med_master_hdlab)
+med_file_mod <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_dfci)
 
 ## > Generate lab features
-lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k, rpdr_lab_master_pe, 
-					rpdr_lab_master_icmp, rpdr_lab_master_hdlab)
+lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k, rpdr_lab_master_dfci)
 
 # BWH - EDADMIN 															 #[MODIFY]
 # --------------
@@ -158,12 +150,15 @@ indic_missing_threshold <- list(30, 50, 40, 30)									  #[MODIFY]
 ##   longest timeframe into multiple, non-overlapping sub-timeframes, e.g.
 ##   the day of t0, the day before t0 - 30 days before, 30 days before - 1 year before
 ## > timeframes must be specified in the right order starting with the longest timeframe
-##   and each timeframe must have a unique '_name' and '_name_abb' 
+##   and each timeframe must have a unique '_name' and '_name_abb' (unit: days)
  
+## main timeframes
+##---------------
+
 ## initialize (DO NOT MODIFY)
 timeframe_list                           <- list()                                 #[DO NOT MODIFY]
 
-## 
+## specify the timeframes
 timeframe_list$timeframe_end$length      <- 365                                   #[MODIFY]
 timeframe_list$timeframe_end$name        <- "timeframe_0m_12m"
 timeframe_list$timeframe_end$name_abb    <- "end"
@@ -176,6 +171,16 @@ timeframe_list$timeframe_day$length      <- 0
 timeframe_list$timeframe_day$name        <- "timeframe_outcome_day"
 timeframe_list$timeframe_day$name_abb    <- "day"
 
+## additional timeframe settings
+##---------------
+
+## specify whether the final feature set is to include "day_to_last" (meta-) features
+## for each feature (timeframe_day_to_last=TRUE) (e.g. zc_cough (count - number of coughs in a given
+## timeperiod) -> zc_cough_day_to_last (the number of days between t0 and the last
+## recorded zc_cough diagnosis in the given timeframe)
+
+timeframe_day_to_last                     <- TRUE
+
 # [4] leakage
 #--------------------------------#
 # specify whether or not leakage controls are to be implemented for each of the 
@@ -183,12 +188,12 @@ timeframe_list$timeframe_day$name_abb    <- "day"
 # preceding t0 to prevent information leakage from the future
 ## > NA: no data is omitted (all data is used up to and including data recorded
 ##   on t0) / 0: data recorded on the day of t0 is NOT used / >1: data recorded on t0 and 
-##   in the x days before t0 is omitted
+##   in the x days before t0 is omitted (unit: days)
 
 ## initialize (DO NOT MODIFY)
 leak_list <- list()                                                                 #[DO NOT MODIFY]
 
-##
+## specify the leakage timeperiods
 leak_list$leak_dem_day 					<- 0                                        #[MODIFY]
 leak_list$leak_enc_day 					<- 0
 leak_list$leak_dia_day 					<- 0

@@ -26,7 +26,7 @@ library(featuristic)
 ### "test_set  " - a binary variable indicating whether a given observation belongs to the
 ###                'testing' (1) / 'training' (0) set
 
-cohort_path           <- paste0(modified_folder, "sample_cohort.Rds")
+cohort_path           <- "/data/zolab/featuristic/test_project/test_cohort.Rds"
 
 # [2] Specify the paths to the key control inputs 
 #---------------------------------------
@@ -34,13 +34,13 @@ cohort_path           <- paste0(modified_folder, "sample_cohort.Rds")
 ##   template folder
 
 # control.R file   > settings
-control_script_path    <- "/data/zolab/featuristic/template/control.R"
+control_path           <- "/data/zolab/featuristic/codebase/featuristic/template/control.R"
 
 # data_path.R file > data paths
-data_script_path       <- "/data/zolab/featuristic/template/data_path.R"
+data_path              <- "/data/zolab/featuristic/codebase/featuristic/template/data_path.R"
 
 # feature_selection.csv file > variable selection 
-feature_selection_path <- "/data/zolab/featuristic/template/feature_selection.csv"
+feature_path           <- "/data/zolab/featuristic/codebase/featuristic/template/feature_selection.csv"
 
 # [3] Specify the ID and prefix which is to be associated with any outputs 
 #---------------------------------------
@@ -49,9 +49,8 @@ feature_selection_path <- "/data/zolab/featuristic/template/feature_selection.cs
 ## > the prefix and ID should be different for every set of settings specified in this file
 ## even if working with the same cohort data file
 
-feature_set_id     <-  "test_cohort_main_model"
-feature_set_prefix <- "3" 
-
+feature_set_prefix   <-  "test_cohort_main_model"
+feature_set_id       <- "3" 
 
 
 # EXECUTION
@@ -59,13 +58,17 @@ feature_set_prefix <- "3"
 
 # Execute Stage-1 > Construct the Features
 #---------------------------------------
-feature_construction(control=control_script_path, data=data_script_path, 
-	feature=feature_selection_path, cohort_id=, cohort_prefix=, cohort=)
+feature_construction(cohort_path=cohort_path, control_path=control_script_path,
+ 	data_path==data_script_path, feature_path=feature_selection_path,
+ 	feature_set_id=feature_set_id,
+ 	feature_set_prefix=feature_set_prefix)
 
 # Execute Stage-2 > Assemble the Features
 #---------------------------------------
-feature_compilation(control=control_script_path, data=data_script_path, 
-	feature=feature_selection_path, cohort_id=, cohort_prefix=, cohort=)
+feature_compilation(cohort_path=cohort_path, control_path=control_script_path,
+ 	data_path==data_script_path, feature_path=feature_selection_path,
+ 	feature_set_id=feature_set_id,
+ 	feature_set_prefix=feature_set_prefix)
 
 
 #----------------------------------------------------------------------------#

@@ -196,6 +196,11 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   non_days_to_last_var <- setdiff(names(lab_cat),grep("days_to_last", names(lab_cat),value=T))
   set_na_zero(lab_cat, subset_col=non_days_to_last_var)
 
+  days_to_last_var <-grep("days_to_last", names(lab_cat),value=T)
+  set_na_zero(lab_cat, subset_col=days_to_last_var, NA)
+  days_to_last_var <-grep("days_to_last", names(lab_num),value=T)
+  set_na_zero(lab_num, subset_col=days_to_last_var, NA)
+
   lab <- cbind(lab[, .(outcome_id, t0_date, empi)], lab_num, lab_cat)
   
   setnames(lab, gsub("mean_temp", "mean", names(lab)))
@@ -211,12 +216,12 @@ lab_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lab_fi
   lab <- cbind(lab[, mget(c("outcome_id", "t0_date", "empi"))], lab_integer,
     lab_numeric)
 
-  lab[, ':='(lab_time_min=time_min, lab_time_max=time_max)]
+  if (length(grep("lab_id$", names(lab), value=T))>0) lab[, ':='(lab_time_min=time_min, lab_time_max=time_max)]
 
   lab[, grep("lab_id$", names(lab), value=T):=NULL]
 
   ## deal with date variables
-  feature_var_format_2(lab)
+  feature_var_format_day_to_last(lab)
 
   #-------------------------------------------------------------------------------#
   # return labs & delete key files 

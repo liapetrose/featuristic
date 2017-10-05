@@ -38,11 +38,11 @@ feature_dataset_check <- function(feature_dt, feature_dt_name, cohort_dt,cohort_
   if (save_name==TRUE) {
 
     ps("feature names saved: %s", paste0(temp_folder, "var_name_raw_", 
-      feature_dt_name, "_", cohort_name, ".csv"))
+      feature_dt_name, "_", feature_set_name, ".csv"))
 
     write.csv(data.table(var_name=names(feature_dt), 
        var_type=sapply(feature_dt, function(x) class(x)[1])), 
-        paste0(temp_folder, "var_name_raw_", feature_dt_name, "_", cohort_name, ".csv"), 
+        paste0(temp_folder, "var_name_raw_", feature_dt_name, "_", feature_set_name, ".csv"), 
         row.names=F)
   
     # tabulate the feature types
