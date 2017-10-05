@@ -4,9 +4,14 @@
 # SETUP
 #----------------------------------------------------------------------------#
 
-# [0] Load the package
+# [0-A] Load the package
 #---------------------------------------
-library(featuristic)
+# library(featuristic)
+
+# [0-B] Load the package - locally 
+#---------------------------------------
+package_path <- "/data/zolab/featuristic/codebase/"
+source("/data/zolab/featuristic/codebase/featuristic/package_management/load_package_locally.R")
 
 # [1] Specify the location of the cohort for which to generate features 
 #---------------------------------------

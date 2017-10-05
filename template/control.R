@@ -89,18 +89,19 @@ dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
 
 # assemble_list <- list(                                                  	
 # 	# basic
-# 	"dem", "prc", "lvs","enc"
+# 	"dem", "prc", "lvs","enc","ed","med","dia"
+#   "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs"
 #	# combined
+#   "med_chemo_oncdrs_rpdr","dia_oncdrs_rpdr"
 # )
 
-# assemble_list <- list("mic")
+# assemble_list <- list(
+	#"mic"
+	#"lab" )
 
-assemble_list <- list(                                                  	 #[MODIFY]
-	# basic
-	"ed","lab", "med", "dia", 
-	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","lab_oncdrs","enc_oncdrs"
-	# combined
-	# "dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
+assemble_list <- list(    
+                                              	 #[MODIFY]
+	 "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]
@@ -167,8 +168,8 @@ indic_missing_threshold <- list(30, 50, 40, 30)									  #[MODIFY]
 timeframe_list                           <- list()                                 #[DO NOT MODIFY]
 
 ## specify the timeframes
-timeframe_list$timeframe_end$length      <- 365                                   #[MODIFY]
-timeframe_list$timeframe_end$name        <- "timeframe_0m_12m"
+timeframe_list$timeframe_end$length      <- 1460                                #[MODIFY]
+timeframe_list$timeframe_end$name        <- "timeframe_1m_4y"
 timeframe_list$timeframe_end$name_abb    <- "end"
 
 timeframe_list$timeframe_short$length    <- 30
@@ -219,8 +220,12 @@ leak_list$leak_ed_day  					<- 0
 ##---------------
 # specify whether to impute non-present indicator variables (e.g. a non-occurring diagnosis), i.e.
 # whether to assume that such variables = 0 (mis_imp=TRUE) or are actually missing/unknown (mis_imp=FALSE)
+## > If set to FALSE: Specify whether to not impute all indicator variables  (non_impute_var_cat=NA)
+##   or to not impute only a subset of indicator variables (non_impute_var_cat="regx1|regx2" where
+##   regx1, regx2 stand for regular expression patterns that identify specific variable categories, e.g. "dia_dia.count")
 
-miss_imp         <- TRUE                                                              #[MODIFY]
+miss_imp               <- TRUE                                                              #[MODIFY]
+non_impute_var_cat     <- "dia_dia.count"
 
 ## imputation - numeric variables
 # specify whether to impute numeric variables (e.g. a missing lab value) according to the

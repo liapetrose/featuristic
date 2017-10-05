@@ -20,19 +20,19 @@ feature_initialisation <- function() {
 	# ----------------------------------------------- #
 
 	# load the settings
-	name_ext_name   <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
-	name_ext   	    <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
-	duration     	<<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
+	name_ext_name        <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
+	name_ext   	         <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
+	timeframe_duration   <<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
 
-	name_ext_name_extemded       <<- c("max", name_ext_name)
-	name_ext_extended            <<- c("_max", name_ext)
-	duration_extended            <<- c(max(duration), duration)
+	name_ext_name_extended           <<- c("max", name_ext_name)
+	name_ext_extended                <<- c("_max", name_ext)
+	timeframe_duration_extended      <<- c(max(timeframe_duration), timeframe_duration)
 
 
 	# generate timeframe variables
-	for (i in 1:length(duration_extended)) {
+	for (i in 1:length(timeframe_duration_extended)) {
 
-		assign(paste0("timeframe", name_ext_extended[i]), duration_extended[i],
+		assign(paste0("timeframe", name_ext_extended[i]), timeframe_duration_extended[i],
 			envir = sys.frame(sys.parent(n=3)))
 
 	}
@@ -117,7 +117,7 @@ feature_initialisation <- function() {
 	# format  dates & generate timeframe-specific dates 
 	# ----------------------------------------------- #	
 	invisible(parse_date(cohort, c("t0_date")))
-	
+
 	for (i in name_ext) {
 		cohort[,c(paste0("t0_date_beg",i)):=t0_date-get(paste0("timeframe", i))]
 	}

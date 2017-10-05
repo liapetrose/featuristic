@@ -24,11 +24,11 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	current_date <- as.character(format(Sys.time(), "%d_%m_%Y")) 
 	
 	# source the control / data scripts
-	print(control_path)
-	source(control_path)
-
 	print(data_path)
 	source(data_path)
+	
+	print(control_path)
+	source(control_path)
 
 	# initialise
 	#-------------------------------------------------#	
@@ -95,7 +95,6 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
     #----------------------------------------------------------------------------#
 	obs_check(pred_set)
 
-
 	# subset features - feature selection (manual)
 	#---------------------------------------------#
 	var_list         <- paste(paste0(variable_list[include==1]$var_cat, "xx"), collapse="|")
@@ -128,22 +127,36 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	
 	if (miss_imp==FALSE) {
 
-		num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(non_impute_var_cat, 
-			names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-			grep("_days_to_last", names(pred_set),value=T)))
+		if(is.na(non_impute_var_cat)) {
+		
+			num_factor_var_mod <- setdiff(unique(c(num_factor_var,indic_var)),  c(cohort_key_var, names(cohort_extra_col), 
+				grep("_days_to_last", names(pred_set),value=T)))
+
+		} else {
+
+			num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(non_impute_var_cat, 
+				names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
+				grep("_days_to_last", names(pred_set),value=T)))
+
+
+		}
+
+		print("indicator variables -> Non-Imputed")
+		print(setdiff(num_factor_var_mod, num_factor_var))
+
 	    write.csv(num_factor_var_mod, paste0(temp_folder, "_num_factor_var_mod_raw.csv"), row.names=F)
 
 		indic_var_mod      <- setdiff(indic_var, num_factor_var_mod)
 		write.csv(indic_var_mod, paste0(temp_folder, "_indic_var_mod.csv"), row.names=F)
 
-		indic_var <- indic_var_mod
-		num_factor_var <- num_factor_var_mod
+		indic_var          <- indic_var_mod
+		num_factor_var     <- num_factor_var_mod
 
 	} 
 	
 
 
-	# impose thresholds
+	# deal with 'missing data' (indicator variables)
 	#---------------------------------------------#
 	if (miss_imp==TRUE) {
 
@@ -155,7 +168,7 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 		#---------------------------------------------#
 		pred_set_non_num <- pred_set[,mget(setdiff(names(pred_set), num_factor_var))]
 		pred_set_num     <- pred_set[,mget(num_factor_var)]
-		set_zero_na(pred_set_non_num, 0)
+		set_zero_na(pred_set_non_num)
 
 		pred_set <- cbind(pred_set_non_num, pred_set_num)
 		

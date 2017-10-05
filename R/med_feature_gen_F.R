@@ -29,24 +29,27 @@ med_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, med_fi
   # load the data
   tryCatch(med <- readRDS_merge(med_file_mod_arg), warning=function(w)
     print("no classified med file available for the data sample"))
-  
+
   if (combine==TRUE) {
     tryCatch(med_ext <- readRDS_merge(med_file_mod_ext), warning=function(w)
       print("no classified med file available for the data sample"))
-    
+  
     tryCatch(med_ext_ext <- readRDS_merge(med_file_mod_ext_ext), warning=function(w)
       print("no classified med file available for the data sample"))
-
-    # temp
-    med[, med_date_1:=med_date] 
-    med_ext[, med_date_1:=med_date] 
-    med_ext_ext[, med_date_1:=med_date]
+   
+    # temp - ensure that dates are standarisedd
+    med[, med_date:=as.IDate(med_date)] 
+    med_ext[, med_date:=as.IDate(med_date)] 
+    med_ext_ext[, med_date:=as.IDate(med_date)]
+    med[, med_date_1:=as.IDate(med_date)] 
+    med_ext[, med_date_1:=as.IDate(med_date)] 
+    med_ext_ext[, med_date_1:=as.IDate(med_date)]
 
     med_ext_ext[, activation_dt:=NULL]
     med_ext_ext[, indication_dt:=NULL]
     
+
     med <- rbindlist(list(med_ext, med), fill=T, use.names=T)
-    
 
     med <- rbindlist(list(med, med_ext_ext), fill=T, use.names=T)
     med[, med_id:=1:nrow(med)]

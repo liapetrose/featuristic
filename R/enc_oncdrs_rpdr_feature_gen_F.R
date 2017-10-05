@@ -15,7 +15,7 @@
   print("launching enc_oncdrs_rpdr_feature_gen")
   
   # generate both files
-  enc <- enc_feature_gen(cohort, cohort_key_var_merge, cohort_key_var)
+  enc        <- enc_feature_gen(cohort, cohort_key_var_merge, cohort_key_var)
 
   # source(enc_oncdrs_feature_code)
   enc_oncdrs <- enc_oncdrs_feature_gen(cohort, cohort_key_var_merge, cohort_key_var)

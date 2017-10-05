@@ -31,6 +31,12 @@
     tryCatch(dia_ext <- readRDS_merge(dia_file_mod_ext), warning=function(w)
       print("no classified dia file available for the data sample"))
     
+    # temp - ensure that dates are standarisedd
+    dia[, dia_date:=as.IDate(dia_date)] 
+    dia_ext[, dia_date:=as.IDate(dia_date)] 
+    dia[, dia_date_1:=as.IDate(dia_date)] 
+    dia_ext[, dia_date_1:=as.IDate(dia_date)] 
+
     dia <- rbindlist(list(dia, dia_ext), fill=T, use.names=T)
     dia[, dia_id:=1:nrow(dia)]
  

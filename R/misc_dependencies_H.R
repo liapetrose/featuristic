@@ -95,13 +95,6 @@ parse_date <- function(dt_vector, column_name_list,column_name_list_new=column_n
 
     if(length(non_date)>0){
       DT[, c(non_date):=lapply(.SD, function(x) as.character(x)), .SDcols=non_date]
-    
-    
-      print("-----------------")
-      print("following columns not converted to a date:")
-      print(non_date)
-      print("-----------------")
-
     }
 
   } 
