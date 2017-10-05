@@ -8,7 +8,7 @@ mem_lim=500000
 core_multi=4
 
 # stage specification ('1','2','12')
-stage='1'
+stage='2'
 
 cd  /data/zolab/featuristic/codebase/featuristic/template
 command="--args ${stage}" 
