@@ -32,7 +32,6 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   enc$op_visit[, grep("enc_op", names(enc$op_visit), value=T):=NULL]
   enc$op_visit[, grep("enc_clinic", names(enc$op_visit), value=T):=NULL]
   enc$op_visit[, enc_op:=1]
-  print(table(enc$ip_visit$enc_ip))
 
   #-------------------------------------------------------------------------------#
   # split list into 4 DT
@@ -46,13 +45,11 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
 
   for (DT in c("enc_class", "ed", "op", "ip")) {
 
-      assign(DT, get(DT)[empi %in% cohort$empi])
+    assign(DT, get(DT)[empi %in% cohort$empi])
 
     invisible(parse_date(get(DT), c("adm_date", "disch_date")))
 
     get(DT)[, c("adm_date_1", "adm_date_2"):=.(adm_date)]
-
-    print(names(get(DT)))
 
     assign(DT,  foverlaps(get(DT), cohort[, mget(cohort_key_var_merge)],
       by.x=c("empi", "adm_date_1", "adm_date_2"), nomatch=0))

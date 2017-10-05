@@ -13,7 +13,7 @@ feature_initialisation <- function() {
 	# ----------------------------------------------- #
 	# feature set name
 	# ----------------------------------------------- #
-	feature_set_name <- paste0(feature_set_prefix, "_", feature_set_id)
+	feature_set_name <<- paste0(feature_set_prefix, "_", feature_set_id)
 
 	# ----------------------------------------------- #
 	# timeframes
@@ -22,17 +22,17 @@ feature_initialisation <- function() {
 	# load the settings
 	name_ext_name   <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
 	name_ext   	    <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
-	length     	    <<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
+	duration     	<<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
 
 	name_ext_name_extemded       <<- c("max", name_ext_name)
 	name_ext_extended            <<- c("_max", name_ext)
-	length_extended              <<- c(max(length), length)
+	duration_extended            <<- c(max(duration), duration)
 
 
 	# generate timeframe variables
-	for (i in 1:length(length_extended)) {
+	for (i in 1:length(duration_extended)) {
 
-		assign(paste0("timeframe", name_ext_extended[i]), length_extended[i],
+		assign(paste0("timeframe", name_ext_extended[i]), duration_extended[i],
 			envir = sys.frame(sys.parent(n=3)))
 
 	}
@@ -148,22 +148,22 @@ feature_initialisation <- function() {
 	# combined features (i.e. BWH + DFCI datasets)
 	# ---------------------------------
 
-	modify_feature_selection(feature_selection_raw) <- function() {
+	modify_feature_selection <- function(feature_selection_raw) {
 
 		if ("dia_oncdrs_rpdr" %in% compile_list)       {
-			feature_selection_raw[file_name=="dia.dfci", include:=0]
+			feature_selection_raw[filename=="dia.dfci", include:=0]
 		}
 
 		if ("med_chemo_oncdrs_rpdr" %in% compile_list) {
-			feature_selection_raw[file_name=="chemo.dfci"| file_name=="med.dfci", include:=0]
+			feature_selection_raw[filename=="chemo.dfci"| filename=="med.dfci", include:=0]
 		}
 
-		if ("lab_oncdrs_rpdr" %in% selection_raw)  {
-			feature_selection_raw[file_name=="lab.dfci", include:=0]
+		if ("lab_oncdrs_rpdr" %in% compile_list)  {
+			feature_selection_raw[filename=="lab.dfci", include:=0]
 		}
 
-		if ("enc_oncdrs_rpdr" %in% selection_raw)     {
-			feature_selection_raw[file_name=="enc.dfci", include:=0]
+		if ("enc_oncdrs_rpdr" %in% compile_list)     {
+			feature_selection_raw[filename=="enc.dfci", include:=0]
 		}
 
 		return(feature_selection_raw)	

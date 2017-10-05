@@ -49,7 +49,7 @@ feature_path           <- "/data/zolab/featuristic/codebase/featuristic/template
 ## > the prefix and ID should be different for every set of settings specified in this file
 ## even if working with the same cohort data file
 
-feature_set_prefix   <-  "test_cohort_main_model"
+feature_set_prefix   <- "test_cohort_main_model"
 feature_set_id       <- "3" 
 
 
@@ -58,15 +58,15 @@ feature_set_id       <- "3"
 
 # Execute Stage-1 > Construct the Features
 #---------------------------------------
-feature_construction(cohort_path=cohort_path, control_path=control_script_path,
- 	data_path==data_script_path, feature_path=feature_selection_path,
+feature_construction(cohort_path=cohort_path, control_path=control_path,
+ 	data_path=data_path, feature_path=feature_path,
  	feature_set_id=feature_set_id,
  	feature_set_prefix=feature_set_prefix)
 
 # Execute Stage-2 > Assemble the Features
 #---------------------------------------
-feature_compilation(cohort_path=cohort_path, control_path=control_script_path,
- 	data_path==data_script_path, feature_path=feature_selection_path,
+feature_compilation(cohort_path=cohort_path, control_path=control_path,
+ 	data_path=data_path, feature_path=feature_path,
  	feature_set_id=feature_set_id,
  	feature_set_prefix=feature_set_prefix)
 

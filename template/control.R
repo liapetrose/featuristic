@@ -34,7 +34,7 @@ output_folder         <- "/data/zolab/featuristic/test_projects/output/"        
 dem_file_mod <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_dfci)  
 
 ## > Generate microbiology features
-mic_file_mod <- list(rpdr_mic_master_bwh_ed_100k, rpdr_mic_master_dfci)  
+mic_file_mod <- list(rpdr_mic_master_bwh_ed_100k)  
 
 ## > Generate diagnosis features
 dia_file_mod <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
@@ -52,7 +52,7 @@ prc_file_mod <- list(rpdr_prc_master_bwh_ed_100k, rpdr_prc_master_dfci)
 med_file_mod <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_dfci)
 
 ## > Generate lab features
-lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k, rpdr_lab_master_dfci)
+lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k)
 
 # BWH - EDADMIN 															 #[MODIFY]
 # --------------
@@ -87,12 +87,20 @@ dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
 #--------------------------------#
 # specify the feature categories which are to be assembled (stage-1)
 
+# assemble_list <- list(                                                  	
+# 	# basic
+# 	"dem", "prc", "lvs","enc"
+#	# combined
+# )
+
+# assemble_list <- list("mic")
+
 assemble_list <- list(                                                  	 #[MODIFY]
 	# basic
-	"dem", "prc", "lvs", "mic", "ed", "enc", "lab", "med", "dia", 
-	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","lab_oncdrs","enc_oncdrs",
+	"ed","lab", "med", "dia", 
+	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","lab_oncdrs","enc_oncdrs"
 	# combined
-	"dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
+	# "dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]

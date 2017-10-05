@@ -37,6 +37,18 @@ for (x in list.files(paste0(package_path, "featuristic", "/data"))) {
 
 }
 
+
+# load all dependencies
+#--------------------------------------# 
+library(ehR)
+package_list <- list("data.table","shape","diagram","dplyr","lubridate",
+	"magrittr","NCmisc","plyr","reshape","reshape2","stringr",
+	"tidyr","zoo","imputeMissings")
+load_or_install(package_list)
+
+
+
+
 #----------------------------------------------------------------------------#
 #                                    END                                     #
 #----------------------------------------------------------------------------#
