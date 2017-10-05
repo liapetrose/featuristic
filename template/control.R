@@ -83,25 +83,19 @@ dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
 #----------------------------------------------------------------------------#
 #----------------------------------------------------------------------------#
 
-# [1] feature types to assemble
+# NOTE: STILL TO TEST
+## > "mic", "lab"," "enc_oncdrs_rpdr""
+
+# [1] feature types to assemble                                            #[MODIFY]
 #--------------------------------#
 # specify the feature categories which are to be assembled (stage-1)
 
-# assemble_list <- list(                                                  	
-# 	# basic
-# 	"dem", "prc", "lvs","enc","ed","med","dia"
-#   "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs"
-#	# combined
-#   "med_chemo_oncdrs_rpdr","dia_oncdrs_rpdr"
-# )
-
-# assemble_list <- list(
-	#"mic"
-	#"lab" )
-
-assemble_list <- list(    
-                                              	 #[MODIFY]
-	 "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
+assemble_list <- list(                                                  	
+  # basic
+  "dem", "prc", "lvs","enc","ed","med","dia",
+  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
+  # combined
+  "med_chemo_oncdrs_rpdr","dia_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]
@@ -110,10 +104,10 @@ assemble_list <- list(
 
 compile_list <- list(
 	# basic
-	"dem", "prc", "lvs", "mic", "ed", "enc", "lab", "med", "dia", 
-	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","lab_oncdrs","enc_oncdrs",
+	"dem", "prc", "lvs", "enc", "ed", "med", "dia", 
+	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","enc_oncdrs","lab_oncdrs",
 	# combined
-	"dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr", "enc_oncdrs_rpdr"
+	"dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr"
 )
 
 
@@ -220,12 +214,13 @@ leak_list$leak_ed_day  					<- 0
 ##---------------
 # specify whether to impute non-present indicator variables (e.g. a non-occurring diagnosis), i.e.
 # whether to assume that such variables = 0 (mis_imp=TRUE) or are actually missing/unknown (mis_imp=FALSE)
-## > If set to FALSE: Specify whether to not impute all indicator variables  (non_impute_var_cat=NA)
-##   or to not impute only a subset of indicator variables (non_impute_var_cat="regx1|regx2" where
-##   regx1, regx2 stand for regular expression patterns that identify specific variable categories, e.g. "dia_dia.count")
+## > If set to FALSE: Specify whether to NOT impute all indicator variables  (non_impute_var_cat=NA)
+##   or to not impute only a subset of indicator variables (impute_var_cat="regx1|regx2" where
+##   regx1, regx2 stand for regular expression patterns that identify specific variable categories, e.g. "dia_dia.count"
+##   which ARE to be imputed)
 
-miss_imp               <- TRUE                                                              #[MODIFY]
-non_impute_var_cat     <- "dia_dia.count"
+miss_imp               <- TRUE                                                        #[MODIFY]
+impute_var_cat         <- "dia_dia.count"
 
 ## imputation - numeric variables
 # specify whether to impute numeric variables (e.g. a missing lab value) according to the

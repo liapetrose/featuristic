@@ -39,19 +39,22 @@ feature_construction <- function(cohort_path, control_path, data_path, feature_p
 		
 	inv_lapply(assemble_list, function(feature_set) {
 
+		tryCatch({
 
-		# source feature generation
-		temp_feature <- indiv_feature_gen(feature_set, cohort=cohort, 
-			cohort_key_var_merge=cohort_key_var_merge, cohort_key_var=cohort_key_var)
+			# source feature generation
+			temp_feature <- indiv_feature_gen(feature_set, cohort=cohort, 
+				cohort_key_var_merge=cohort_key_var_merge, cohort_key_var=cohort_key_var)
 	
-		feature_dataset_check(temp_feature, paste0(feature_set, "_feature"), cohort_dt=cohort,
-			cohort_key_var_list=cohort_key_var, extra_var_list=names(cohort_extra_col))
+			feature_dataset_check(temp_feature, paste0(feature_set, "_feature"), cohort_dt=cohort,
+				cohort_key_var_list=cohort_key_var, extra_var_list=names(cohort_extra_col))
 
-		# save 
-		saveRDS(temp_feature, paste0(modified_folder, paste0(feature_set, "_feature_"), 
-			feature_set_name, ".Rds"))
+			# save 
+			saveRDS(temp_feature, paste0(modified_folder, paste0(feature_set, "_feature_"), 
+				feature_set_name, ".Rds"))
 	
-		rm("temp_feature")
+			rm("temp_feature")
+
+		},error=function(e) print(e))
 
 	})	
 

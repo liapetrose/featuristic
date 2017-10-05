@@ -127,17 +127,15 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	
 	if (miss_imp==FALSE) {
 
-		if(is.na(non_impute_var_cat)) {
+		if(is.na(impute_var_cat)) {
 		
-			num_factor_var_mod <- setdiff(unique(c(num_factor_var,indic_var)),  c(cohort_key_var, names(cohort_extra_col), 
-				grep("_days_to_last", names(pred_set),value=T)))
+			## no steps
 
 		} else {
 
-			num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(non_impute_var_cat, 
+			num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
 				names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
 				grep("_days_to_last", names(pred_set),value=T)))
-
 
 		}
 
@@ -178,7 +176,8 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	}
 
-
+	# NOTE: CHECKED UNTIL HERE
+	
 	# deal with missing (numeric data)
    	#---------------------------------------------#
    	if (length(num_factor_var)>0) {
@@ -260,7 +259,7 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	if (miss_imp==FALSE) {
 
-		num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(non_impute_var_cat, 
+		num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
 			names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
 			grep("_days_to_last", names(pred_set),value=T)))
 	    write.csv(num_factor_var_mod, paste0(temp_folder, "_num_factor_var_mod_mod.csv"), row.names=F)
