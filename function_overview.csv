@@ -15,7 +15,7 @@
 "feature_initialisation","Initialise the feature construction machinery."
 "feature_overview","Initialise the feature construction machinery."
 "feature_var_format","Format features."
-"feature_var_format_2","Format features."
+"feature_var_format_day_to_last","Format features."
 "gagne_code","Gagne Comorbididty Score Weights."
 "indiv_feature_gen","Generate individual feature sets."
 "lab_feature_gen","Generate lab-related features (lab data)."
