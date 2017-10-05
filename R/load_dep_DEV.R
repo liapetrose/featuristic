@@ -6,14 +6,11 @@
 #' @import data.table
 #' @import shape
 #' @import diagram
+#' @import plyr
 #' @import dplyr
-#' @import futile.logger
 #' @import lubridate
 #' @import magrittr
 #' @import NCmisc
-#' @import pbapply
-#' @import plyr
-#' @import reader
 #' @import reshape
 #' @import reshape2
 #' @import stringr
