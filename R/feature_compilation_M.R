@@ -176,8 +176,6 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	}
 
-	# NOTE: CHECKED UNTIL HERE
-	
 	# deal with missing (numeric data)
    	#---------------------------------------------#
    	if (length(num_factor_var)>0) {
@@ -244,33 +242,6 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	obs_check(pred_set)
 
-    # Missingness output - documentation (2)
-	# ----------------------------------------------------------------------------#
-    variable_type <- data.table(var_type=unlist(sapply(pred_set, class)))
-	variable_type[, var_type_count:=.N, by=c("var_type")]
-	print(unique(variable_type, by=c("var_type")))
-
-	num_factor_var   <- setdiff(names(pred_set[, (c(which(sapply(pred_set, function(x) 
-		class(x)[1]) %in% c("numeric","factor")))), with=F]), union(cohort_key_var, 
-		names(cohort_extra_col)))
-	indic_var <- setdiff(names(pred_set[, (c(which(sapply(pred_set, function(x) 
-		class(x)[1]) %in% c("integer")))), with=F]), union(cohort_key_var, 
-		names(cohort_extra_col)))
-
-	if (miss_imp==FALSE) {
-
-		num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
-			names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-			grep("_days_to_last", names(pred_set),value=T)))
-	    write.csv(num_factor_var_mod, paste0(temp_folder, "_num_factor_var_mod_mod.csv"), row.names=F)
-
-		indic_var_mod      <- setdiff(indic_var, num_factor_var_mod)
-		write.csv(indic_var_mod, paste0(temp_folder, "_indic_var_mod.csv"), row.names=F)
-
-		indic_var <- indic_var_mod
-		num_factor_var <- num_factor_var_mod
-
-	} 
 
     # Median Imputation
 	# ----------------------------------------------------------------------------#
@@ -345,6 +316,8 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	# Format the column names
 	# ----------------------------------------------------------------------------#
+
+	# REVIEWED UNTIL HERE
 
 	# main timeframes
 	for (i in name_ext) {
