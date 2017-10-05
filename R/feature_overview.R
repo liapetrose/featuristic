@@ -26,17 +26,17 @@ feature_overview <- function() {
 	obs_count_complete   <- nrow(pred_set_final[complete.cases(pred_set_final[, 
 								mget(grep("^var", names(pred_set_final), value=T))])])
 
-	if (test_train==TRUE) {
+	if ("test_set" %in% names(pred_set)) {
 
-		obs_count_train 		 <- nrow(pred_set_final[get(test_train_mod)==1])
+		obs_count_train 		 <- nrow(pred_set_final[get("test_set")==1])
 		obs_count_complete_train <- nrow(pred_set_final[complete.cases(pred_set_final[, 
 									mget(grep("^var", names(pred_set_final), value=T))])][
-									get(test_train_mod)==1])
+									get("test_set")==1])
 
-		obs_count_test           <- nrow(pred_set_final[get(test_train_mod)==0])
+		obs_count_test           <- nrow(pred_set_final[get("test_set")==0])
 		obs_count_complete_test  <- nrow(pred_set_final[complete.cases(pred_set_final[, 
 									mget(grep("^var", names(pred_set_final), value=T))])][
-									get(test_train_mod)==0])
+									get("test_set")==0])
 
 	}
 
@@ -90,8 +90,7 @@ feature_overview <- function() {
 	# ----------------------------------------------------------------------------#
 
 	# preparation
-    leak_table <- data.table(var_name=leak_list, leak_day=mget(leak_list, 
-    	env=.GlobalEnv))
+    leak_table <- data.table(var_name=names(leak_list), leak_day=c(unlist(leak_list)))
 
 	# set-up
 	feature_vital_sign <- list()
@@ -103,10 +102,9 @@ feature_overview <- function() {
 
 	list_space("feature_vital_sign")
 
-    feature_vital_sign$id_var_name      <- outcome_id_mod	
-    feature_vital_sign$date_var_name    <- t0_date_mod	
-    feature_vital_sign$outcome_var_name <- outcome_name_mod	
-    feature_vital_sign$cohort_subset    <- cohort_mod	
+    feature_vital_sign$id_var_name      <- "outcome_id"	
+    feature_vital_sign$date_var_name    <- "t0_date"	
+    feature_vital_sign$outcome_var_name <- "outcome"	
 
 	list_space("feature_vital_sign")
     
@@ -127,7 +125,7 @@ feature_overview <- function() {
     feature_vital_sign$obs_count                <- obs_count	
     feature_vital_sign$obs_count_complete       <- obs_count_complete
 
-    if (test_train==TRUE) {
+    if ("test_set" %in% names(pred_set)) {
 
     	feature_vital_sign$obs_count_train               <- obs_count_train	
     	feature_vital_sign$obs_count_complete_train      <- obs_count_complete_train
@@ -191,7 +189,7 @@ feature_overview <- function() {
 		feature_vital_sign_raw <- fread(paste0(output_folder, "feature_vital_sign.csv"))
 
 		feature_vital_sign_table <- list_table(feature_vital_sign, current_date,
- 			merge=T, old=feature_vital_sign_raw)
+ 			vital_signs_merge=T, vital_signs_old=feature_vital_sign_raw)
 
 		ps("sucessfully generated feature vital signs _table_ (appended)")
 
@@ -200,7 +198,7 @@ feature_overview <- function() {
 	} else {
 			
 		feature_vital_sign_table <- list_table(feature_vital_sign, current_date,
- 			merge=F)
+ 			vital_signs_merge=F)
 
 		ps("sucessfully generated feature vital signs _table_ (new)")
 

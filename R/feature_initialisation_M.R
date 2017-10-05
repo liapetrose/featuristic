@@ -35,6 +35,9 @@ feature_initialisation <- function() {
 		assign(paste0("timeframe", name_ext_extended[i]), timeframe_duration_extended[i],
 			envir = sys.frame(sys.parent(n=3)))
 
+		assign(paste0("timeframe", name_ext_extended[i], "_name"), name_ext_name_extended[i],
+			envir = sys.frame(sys.parent(n=3)))
+
 	}
 
 	# ----------------------------------------------- #

@@ -317,8 +317,6 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	# Format the column names
 	# ----------------------------------------------------------------------------#
 
-	# REVIEWED UNTIL HERE
-
 	# main timeframes
 	for (i in name_ext) {
 	   var_name_final <- gsub(paste0(gsub("_", "", i), "$"), get(paste0("timeframe", i, "_name")),
@@ -362,7 +360,7 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 	# cast the factor columns such that factors are converted to independent indicator variables
 	factor_var <- names(pred_set)[which(sapply(pred_set, function(x) class(x)[1]) %in% c("factor"))]
-	pred_set <- one_hot_encoding(pred_set, factor_var)
+	pred_set   <- one_hot_encoding(pred_set, factor_var)
 
     # format names
 	# ----------------------------------------------------------------------------#

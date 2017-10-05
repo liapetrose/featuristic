@@ -15,7 +15,7 @@
 
 temp_folder           <- "/data/zolab/featuristic/test_project/temp/"              #[MODIFY]
 modified_folder       <- "/data/zolab/featuristic/test_project/modified/"          #[MODIFY]
-output_folder         <- "/data/zolab/featuristic/test_projects/output/"            #[MODIFY]
+output_folder         <- "/data/zolab/featuristic/test_project/output/"            #[MODIFY]
 
 # [B] data 
 #----------------------------------------------------------------------------#
@@ -84,7 +84,7 @@ dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
 #----------------------------------------------------------------------------#
 
 # NOTE: STILL TO TEST
-## > "mic", "lab"," "enc_oncdrs_rpdr""
+## > "mic", "lab"," "enc_oncdrs_rpdr","med_chemo_oncdrs_rpdr"
 
 # [1] feature types to assemble                                            #[MODIFY]
 #--------------------------------#
@@ -95,7 +95,7 @@ assemble_list <- list(
   "dem", "prc", "lvs","enc","ed","med","dia",
   "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
   # combined
-  "med_chemo_oncdrs_rpdr","dia_oncdrs_rpdr","lab_oncdrs_rpdr"
+  "dia_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]
@@ -107,7 +107,7 @@ compile_list <- list(
 	"dem", "prc", "lvs", "enc", "ed", "med", "dia", 
 	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","enc_oncdrs","lab_oncdrs",
 	# combined
-	"dia_oncdrs_rpdr", "med_chemo_oncdrs_rpdr", "lab_oncdrs_rpdr"
+	"dia_oncdrs_rpdr",  "lab_oncdrs_rpdr"
 )
 
 

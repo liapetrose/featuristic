@@ -1,6 +1,12 @@
 # Generating Features - TEMPLATE
 #----------------------------------------------------------------------------#
 
+# Control parameters
+#----------------------------------------------------------------------------#
+stage <- as.character(commandArgs(trailingOnly = TRUE)[1])
+
+print(sprintf("stage: %s", stage))
+
 # SETUP
 #----------------------------------------------------------------------------#
 
@@ -39,13 +45,13 @@ cohort_path           <- "/data/zolab/featuristic/test_project/test_cohort.Rds"
 ##   template folder
 
 # control.R file   > settings
-control_path           <- "/data/zolab/featuristic/codebase/featuristic/template/control.R"
+control_path         <- "/data/zolab/featuristic/codebase/featuristic/template/control.R"
 
 # data_path.R file > data paths
-data_path              <- "/data/zolab/featuristic/codebase/featuristic/template/data_path.R"
+data_path            <- "/data/zolab/featuristic/codebase/featuristic/template/data_path.R"
 
 # feature_selection.csv file > variable selection 
-feature_path           <- "/data/zolab/featuristic/codebase/featuristic/template/feature_selection.csv"
+feature_path         <- "/data/zolab/featuristic/codebase/featuristic/template/feature_selection.csv"
 
 # [3] Specify the ID and prefix which is to be associated with any outputs 
 #---------------------------------------
@@ -63,17 +69,28 @@ feature_set_id       <- "3"
 
 # Execute Stage-1 > Construct the Features
 #---------------------------------------
-feature_construction(cohort_path=cohort_path, control_path=control_path,
- 	data_path=data_path, feature_path=feature_path,
- 	feature_set_id=feature_set_id,
- 	feature_set_prefix=feature_set_prefix)
+if ('1' %in% stage) {
+
+	print("starting stage-1 (feature construction)")
+
+	feature_construction(cohort_path=cohort_path, control_path=control_path,
+ 		data_path=data_path, feature_path=feature_path,
+ 		feature_set_id=feature_set_id,
+ 		feature_set_prefix=feature_set_prefix)
+}
+
 
 # Execute Stage-2 > Assemble the Features
 #---------------------------------------
-feature_compilation(cohort_path=cohort_path, control_path=control_path,
- 	data_path=data_path, feature_path=feature_path,
- 	feature_set_id=feature_set_id,
- 	feature_set_prefix=feature_set_prefix)
+if ('2' %in% stage) {
 
+	print("starting stage-2 (feature compilation)")
+
+	feature_compilation(cohort_path=cohort_path, control_path=control_path,
+ 		data_path=data_path, feature_path=feature_path,
+ 		feature_set_id=feature_set_id,
+ 		feature_set_prefix=feature_set_prefix)
+
+}
 
 #----------------------------------------------------------------------------#
