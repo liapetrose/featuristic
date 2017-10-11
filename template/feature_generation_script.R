@@ -53,7 +53,7 @@ control_path         <- paste0(wd_path,"codebase/featuristic/template/control.R"
 
 
 # data_def_path.R file > data paths
-data_def_path        <- paste0(wd_path,"codebase/featuristic/template/data_path.R") 
+data_def_path        <- paste0(wd_path,"codebase/featuristic/template/data_def_path.R") 
 
 # feature_selection.csv file > variable selection 
 feature_path         <- paste0(wd_path,"codebase/featuristic/template/feature_selection.csv") 
