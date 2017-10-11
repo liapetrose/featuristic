@@ -7,6 +7,7 @@
 #' @export
 #' @param cohort
 #' @param cohort_key_var_merge
+#' @param cohort_key_var
 #' @param dia_file_mod_arg
 #' @param leak_dia_day
 #' @param combine
@@ -16,218 +17,171 @@
 #' @examples
 
  dia_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, dia_file_mod_arg=dia_file_mod, 
-  leak_dia_day_arg=leak_dia_day, combine=FALSE,dia_file_mod_ext=NA, file_date_var="dia_date") {
+  leak_dia_day_arg=leak_dia_day, combine=FALSE, dia_file_mod_ext=NA, file_date_var="dia_date") {
 
   print("launching dia_feature_gen")
 
   #-------------------------------------------------------------------------------#
-  # Load the  modified/pre-processed dia file for the specified data sample -- 
+  # SETUP
+  #-------------------------------------------------------------------------------#
+
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
     
-  # load the data
-   tryCatch(dia <- readRDS_merge(dia_file_mod_arg), warning=function(w)
+  # load data
+   tryCatch(dia <- readRDS_merge(dia_file_mod_arg), error=function(e)
     print("no classified dia file available for the data sample"))
 
-  if (combine==TRUE) {
-    tryCatch(dia_ext <- readRDS_merge(dia_file_mod_ext), warning=function(w)
-      print("no classified dia file available for the data sample"))
-    
-    # temp - ensure that dates are standarisedd
-    dia[, dia_date:=as.IDate(dia_date)] 
-    dia_ext[, dia_date:=as.IDate(dia_date)] 
-    dia[, dia_date_1:=as.IDate(dia_date)] 
-    dia_ext[, dia_date_1:=as.IDate(dia_date)] 
+  # ensure that date variables exist
+  if (!(paste0(file_date_var, "_1") %in% names(dia))) dia[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
 
-    dia <- rbindlist(list(dia, dia_ext), fill=T, use.names=T)
+  # combine 
+  if (combine==TRUE) {
+    
+    tryCatch(dia_ext <- readRDS_merge(dia_file_mod_ext), error=function(e)
+      print("no classified dia file available for the data sample"))
+    if (!(paste0(file_date_var, "_1") %in% names(dia_ext))) dia_ext[, 
+      c(paste0(file_date_var, "_1")):=get(file_date_var)]
+
+    # ensure that dates are standarised & aligned
+    invisible(format_date(list(dia, dia_ext), c(file_date_var,paste0(file_date_var, "_1"))))
+    
+    # merge
+    dia <- rbindlist(list(dia_ext, dia), fill=T, use.names=T)
+
     dia[, dia_id:=1:nrow(dia)]
  
   }
 
-  # remove if empi is missing
+
+  print(sprintf("number of observations: %d", nrow(dia)))
+
+  # subset to cohort
   dia <- dia[!is.na(empi)]
+  dia <- dia[empi %in% cohort$empi]
+
+  print(sprintf("number of observations - cohort subset: %d", nrow(dia)))
   
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients", nrow(dia)>0)
+
+  # subset to smaller sample (if test_mode==TRUE)
+  if (test_mode==TRUE) {
+    
+    dia <- dia[1:min(test_row, nrow(dia))]
+
+  }
+  
+  #-------------------------------------------------------------------------------#
+  # ADDITIONAL SUBSETTING / FORMATTING
+  #-------------------------------------------------------------------------------#
+
   # remove rule out diagnoses
   dia <- dia[is.na(rule_out)]
 
-  # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
-    store_shorten_file("dia")
-  }
-
   # subset to the variables which are to be employed in the feature construction process
-  # select only diagnosis code related variables -- drop potential features (provider, 
-  # clinic, hospital, inpatient_outpatient)
-  dia[, c("clinic_name", "hospital", "inpatient_outpatient", "provider"):=NULL]
+  suppressWarnings(dia[, c("clinic_name", "hospital", "inpatient_outpatient", "provider"):=NULL])
 
   # select ccs (single/multi & zc) - category names rather than numbers
-  dia[, grep("num", names(dia)):=NULL]
+  suppressWarnings(dia[, grep("num", names(dia)):=NULL])
 
   #-------------------------------------------------------------------------------#
-  # merge diagnosis file with cohort (cohort_key_variables) & format dates
+  # MERGING & TIMEFRAMES
+  #-------------------------------------------------------------------------------#
 
-  dia <- dia[empi %in% cohort$empi]
+  # Date Formatting & Merge data file with cohort & Implement leakage control
+  #-------------------------------------------------------------------------------#
+ 
+  # date formatting
+  invisible(format_date(list(dia), c(file_date_var,paste0(file_date_var, "_1"))))
 
-  invisible(parse_date(dia, c("dia_date")))
+  # foverlaps merge
+  dia[, c(paste0(file_date_var, "_1"),paste0(file_date_var, "_2")):=.(get(file_date_var))]
 
-  dia[, c("dia_date_1","dia_date_2"):=.(dia_date)]
+  dia <-  foverlaps(dia, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+    paste0(file_date_var, "_1"), paste0(file_date_var, "_2")), nomatch=0)
 
-  dia <-foverlaps(dia, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
-    "dia_date_1", "dia_date_2"), nomatch=0)
+  print(sprintf("number of observations - cohort subset within the relevant timeframe(s): %d", nrow(dia)))
 
+  ## SAMPLE SIZE CHECK #2
+  assert("observations - cohort subset within the relevant timeframe(s)", nrow(dia)>0)
+
+  # time difference calculation (event date vs. t0 date)
   dia[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
-  # implement leakage control
+  # implement leakage control 
   if (!is.na(leak_dia_day_arg)) {
-    dia <- dia[!(t0_date-dia_date_1<=leak_dia_day_arg)]
+    
+    dia <- dia[!(t0_date-get(paste0(file_date_var, "_1"))<=leak_dia_day_arg)]
+
   }
-  
-  #-------------------------------------------------------------------------------#
-  # sub setting & dividing into smaller DT based on timeframe  - 
-  # return as list (...timeframe_comb)
-  invisible(timeframe_split(list("dia"), "dia_date"))
 
-  name_ext_extended <- name_ext_extended[sapply(dia_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
-  dia_timeframe_comb <- dia_timeframe_comb[sapply(dia_timeframe_comb, nrow)!=0]
-  
-  time_min <- min(do.call("c", lapply(dia_timeframe_comb, function(x) as.Date(min(x[, 
-    dia_date]), "%Y-%m-%d"))))
-  time_max <- max(do.call("c", lapply(dia_timeframe_comb, function(x) as.Date(max(x[, 
-    dia_date]), "%Y-%m-%d"))))
+  # split data into feature timeframes
+  #-------------------------------------------------------------------------------#
+  return_mult[dia_timeframe_comb, time_min, time_max] <- timeframe_split(list("dia"), file_date_var)[[1]]
+  name_ext_extended_tmp                               <- gsub("timeframe_comb", "", names(dia_timeframe_comb))
+  name_ext_tmp                                        <- name_ext_extended_tmp[2:length(name_ext_extended_tmp)]
+
+  ## SAMPLE SIZE CHECK #3
+  assert("observations for cohort patients within relevant timeframes", 
+    all(sapply(dia_timeframe_comb, function(x) nrow(x)>0)))
 
   #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
+  # FEATURE GENERATION
+  #-------------------------------------------------------------------------------#
+
+  # [1] Zocat Features 
+  #-------------------------------------------------------------------------------#
+  print("feature generation - dia_dia.count_zc")
 
   zc_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc..", 
-    zc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff", 
-    subset=.(!is.na(zc_cat_name) & zc_cat_name!="" )))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_zc..', zc_cat_name)"), 
+    value.var = "time_diff", subset=non_missing("zc_cat_name"), mode="basic"))
 
   zc_timeframe_comb <- feature_var_format(zc_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc", names(DT), value=T),name_ext)), 
-    DT=zc_timeframe_comb,  name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_zc", 
+    names(DT), value=T), new=paste0(grep("dia_dia.count_zc", names(DT), value=T),name_ext_tmp)), 
+    DT=zc_timeframe_comb,  name_ext_extended_tmp)
 
+  # [2] Zocat Mod Features (Modified Cancer Classification - Primary/Secondary Breakdown)
   #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars
-
-  zc_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.excl.cancer..", 
-    zc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_cat_name) & zc_cat_name!="" & onc_dia==0)))
-
-  zc_excl_cancer_timeframe_comb <- feature_var_format(zc_excl_cancer_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.excl.cancer", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.excl.cancer", names(DT), value=T),name_ext)), 
-    DT=zc_excl_cancer_timeframe_comb,  name_ext_extended))
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
+  print("feature generation - dia_dia.count_zc.mod")
 
   zc_mod_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.mod..", 
-    zc_mod_prim_onc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_mod_prim_onc_cat_name) & zc_mod_prim_onc_cat_name!="" )))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_zc.mod..', zc_mod_prim_onc_cat_name)"), 
+    value.var="time_diff", subset=non_missing("zc_mod_prim_onc_cat_name"), mode="basic"))
 
   zc_mod_timeframe_comb <- feature_var_format(zc_mod_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.mod", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.mod", names(DT), value=T),name_ext)), 
-    DT=zc_mod_timeframe_comb,  name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_zc.mod", 
+    names(DT), value=T), new=paste0(grep("dia_dia.count_zc.mod", names(DT), value=T),name_ext_tmp)), 
+    DT=zc_mod_timeframe_comb,  name_ext_extended_tmp)
 
+  # [3] Single CCS Features
   #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
-
-  zc_mod_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.mod.excl.cancer..", 
-    zc_mod_prim_onc_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_mod_prim_onc_cat_name) & 
-    zc_mod_prim_onc_cat_name!="" &  onc_dia==0)))
-
-  zc_mod_excl_cancer_timeframe_comb <- feature_var_format(zc_mod_excl_cancer_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.mod.excl.cancer", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.mod.excl.cancer", 
-    names(DT), value=T),name_ext)), DT=zc_mod_excl_cancer_timeframe_comb,  name_ext_extended))
-
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
-
-  zc_mod_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.mod..", 
-    zc_mod_prim_onc_cat_name),  fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_mod_prim_onc_cat_name) & 
-    zc_mod_prim_onc_cat_name!="" &  onc_dia==1)))
-
-  zc_mod_cancer_timeframe_comb <- feature_var_format(zc_mod_cancer_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.cancer.mod", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.cancer.mod", names(DT), value=T),name_ext)), 
-    DT=zc_mod_cancer_timeframe_comb,  name_ext_extended))
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
-
-  zc_cancer_detailed_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed..", 
-    zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" )))
-
- zc_cancer_detailed_timeframe_comb <- feature_var_format(zc_cancer_detailed_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.cancer.detailed", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.cancer.detailed", names(DT), value=T),name_ext)), 
-    DT=zc_cancer_detailed_timeframe_comb, name_ext_extended))
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
-
-  zc_cancer_detailed_excl_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed.excl.cancer..", 
-    zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" & 
-     onc_dia==0)))
-
-  zc_cancer_detailed_excl_cancer_timeframe_comb <- feature_var_format(zc_cancer_detailed_excl_cancer_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.cancer.detailed.excl.cancer", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.cancer.detailed.excl.cancer", names(DT), value=T),name_ext)), 
-    DT=zc_cancer_detailed_excl_cancer_timeframe_comb, name_ext_extended))
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
-
-  zc_cancer_detailed_cancer_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_zc.cancer.detailed.cancer..", 
-    zc_cancer_detailed_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(zc_cancer_detailed_cat_name) & zc_cancer_detailed_cat_name!="" & 
-     onc_dia==1)))
-
-  zc_cancer_detailed_cancer_timeframe_comb <- feature_var_format(zc_cancer_detailed_cancer_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_zc.cancer.detailed.cancer", 
-    names(DT), value=T), paste0(grep("dia_dia.count_zc.cancer.detailed.cancer", names(DT), value=T),name_ext)), 
-    DT=zc_cancer_detailed_cancer_timeframe_comb, name_ext_extended))
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
+  print("feature generation - dia_dia.count_dia.single.ccs")
 
   ccs_single_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.single.ccs..", 
-    ccs_single_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(ccs_single_cat_name) & ccs_single_cat_name!="" )))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_dia.single.ccs..', ccs_single_cat_name)"), 
+    value.var="time_diff", subset=non_missing("ccs_single_cat_name"),mode="basic"))
 
   ccs_single_timeframe_comb <- feature_var_format(ccs_single_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_dia.single.ccs", 
-    names(DT), value=T), paste0(grep("dia_dia.count_dia.single.ccs", names(DT), value=T),
-    name_ext)), DT=ccs_single_timeframe_comb, name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_dia.single.ccs", 
+    names(DT), value=T), new=paste0(grep("dia_dia.count_dia.single.ccs", names(DT), value=T),
+    name_ext_tmp)), DT=ccs_single_timeframe_comb, name_ext_extended_tmp)
 
+  # [4] Multi CCS features
   #-------------------------------------------------------------------------------#
-  # reshaping - create diagnosis code count vars 
+  print("feature generation - dia_dia.count_dia.multi.ccs")
+
+  # [*] combine
   ccs_multi_timeframe_comb <- lapply(dia_timeframe_comb, function(x)
     rbindlist(list(x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_1, time_diff)],
     x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_2, time_diff)], 
@@ -236,24 +190,26 @@
     use.names=T))
 
   ccs_multi_timeframe_comb <- lapply(ccs_multi_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.multi.ccs..",
-    ccs_multi_cat_name), fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var="time_diff", 
-    subset=.(!is.na(ccs_multi_cat_name)  & ccs_multi_cat_name!="" )))
+    dcast.data.table_check(data=x, 
+    outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.multi.ccs..", ccs_multi_cat_name), 
+    value.var="time_diff", subset=non_missing("ccs_multi_cat_name"),mode="basic"))
 
   ccs_multi_timeframe_comb <- feature_var_format(ccs_multi_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("dia_dia.count_dia.multi.ccs", 
-    names(DT), value=T), paste0(grep("dia_dia.count_dia.multi.ccs", names(DT), value=T),
-    name_ext)), DT=ccs_multi_timeframe_comb, name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_dia.multi.ccs", 
+    names(DT), value=T), new=paste0(grep("dia_dia.count_dia.multi.ccs", names(DT), value=T),
+    name_ext_tmp)), DT=ccs_multi_timeframe_comb, name_ext_extended_tmp)
 
+  # [5] Gagne Features
   #-------------------------------------------------------------------------------#
-  # generating gagne scores
+  print("feature generation - dia_dia.count_gagne.cat AND dia_dia.score_gagne..score")
   
-  gagne_name <- gagne_code$gagne
-  gagne_weight <- as.numeric(gsub("_", "-", gagne_code$weight))
-
+  # [*] initialize
+  gagne_name        <- gagne_code$gagne
+  gagne_weight      <- as.numeric(gsub("_", "-", gagne_code$weight))
   gagne_formula_exp <- ""
-
+  
+  # [*] generate the gagne weighting formula
   gagne_formula  <- function(cat, weight, ext) {
     for (i in 1:length(cat)) {
       gagne_formula_exp <- paste(gagne_formula_exp, weight[i], "*", paste0(ext, 
@@ -263,84 +219,94 @@
     return(gagne_formula_exp)
   }
 
-  # (b) reshaping - create diagnosis code count vars 
+  # Gagne Count Features
+  #------------------------------------------------------#
+
   gagne_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  
-    paste0("dia_dia.count_gagne.cat..", gagne), length, value.var = "gagne", 
-    subset=.(!is.na(gagne)  & gagne!="" )))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_gagne.cat..', gagne)"), 
+    value.var = "gagne", subset=non_missing("gagne"), mode="length"))
 
-  # (c) generate complete set of gagne category dummies (i.e. 0/1 if present 
-  # or not at least once during time period)  - "dia_gagne.."
-  gagne_timeframe_comb <- lapply(gagne_timeframe_comb, function(x) 
-    x[, gsub("dia_dia.count_gagne.cat..", "dia_dia.score_gagne..", 
-    grep("dia_dia.count_gagne.cat", names(x), value=T)) :=lapply(.SD, function(x) 
-    ifelse(x>=1, 1,0)), .SDcols=grep("dia_dia.count_gagne.cat", names(x))])
+  # count indicators > binary indicators used in the score calculation
+  inv_lapply(gagne_timeframe_comb, function(x) {
 
-  gagne_timeframe_comb <- lapply(gagne_timeframe_comb, function(x) 
-    x[, setdiff(paste0("dia_dia.score_gagne..",gagne_name), grep("dia_dia.score_gagne..", 
-    names(x), value=T)):=0])
+    if(length(grep("dia_dia.count_gagne.cat", names(x), value=T))>0) {
 
-  # (d) determine the gagne score 
+      x[, gsub("dia_dia.count_gagne.cat..", "dia_dia.score_gagne..", 
+        grep("dia_dia.count_gagne.cat", names(x), value=T)) :=lapply(.SD, function(x) 
+        ifelse(x>=1,1,0)), .SDcols=grep("dia_dia.count_gagne.cat", names(x), value=T)]
+
+    }
+  })
+
+  # create non-existing binary indicators (for the score calculation)
+  inv_lapply(gagne_timeframe_comb, function(x) {
+
+    if(length(setdiff(paste0("dia_dia.score_gagne..",gagne_name), grep("dia_dia.score_gagne..", 
+      names(x), value=T)))>0) {
+
+      x[, setdiff(paste0("dia_dia.score_gagne..",gagne_name), grep("dia_dia.score_gagne..", 
+        names(x), value=T)):=0]
+
+    }
+  })
+    
+  # Gagne Score Feature
+  #------------------------------------------------------#
   gagne_timeframe_comb <- lapply(gagne_timeframe_comb, function(x) 
     x[, dia_dia.score_gagne..score:=eval(parse(text=gagne_formula(gagne_name[!(gagne_weight==0)],  
     gagne_weight[!(gagne_weight==0)], "dia_dia.score_gagne..")))])
-  gagne_timeframe_comb <- lapply(gagne_timeframe_comb, function(x) 
+
+  gagne_timeframe_comb <- suppressWarnings(lapply(gagne_timeframe_comb, function(x) 
     x[, setdiff(grep("dia_dia.score_gagne\\.\\.", names(x), value=T), 
-    "dia_dia.score_gagne..score"):=NULL])
+    "dia_dia.score_gagne..score"):=NULL]))
 
-  # (e) impose feature categorization ("_short/_long")
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("gagne", 
-    names(DT), value=T), paste0(grep("gagne", names(DT), value=T),
-    name_ext)), DT=gagne_timeframe_comb, name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("gagne", 
+    names(DT), value=T), new=paste0(grep("gagne", names(DT), value=T),
+    name_ext_tmp)), DT=gagne_timeframe_comb, name_ext_extended_tmp)
 
   #-------------------------------------------------------------------------------#
-  # merge dia feature files
+  # FEATURE MERGING
+  #-------------------------------------------------------------------------------#
+
+  print("feature merging")
+
   dia_feature_list <- list("zc_timeframe_comb", "zc_mod_timeframe_comb", 
-    "zc_cancer_detailed_timeframe_comb",  
-    "zc_excl_cancer_timeframe_comb","zc_mod_excl_cancer_timeframe_comb", 
-    "zc_mod_cancer_timeframe_comb","zc_cancer_detailed_excl_cancer_timeframe_comb",
-    "zc_cancer_detailed_cancer_timeframe_comb","ccs_single_timeframe_comb",
-    "ccs_multi_timeframe_comb", "gagne_timeframe_comb")
+    "ccs_single_timeframe_comb","ccs_multi_timeframe_comb", "gagne_timeframe_comb")
+  dia_feature_list <- dia_feature_list[which(dia_feature_list %in% ls())]
 
-  timeframe_combine(dia_feature_list)
+  # combine features across feature timeframes
+  dia_list_tmp <- timeframe_combine(mget(unlist(dia_feature_list)), dia_feature_list)
 
-  dia <- Reduce(mymerge, mget(unlist(dia_feature_list)))
-
+  # combine features across feature types
+  dia <- Reduce(mymerge, dia_list_tmp)
 
   #-------------------------------------------------------------------------------#
-  # merge with cohort file - empty records -> 0
+  # MERGE FEATURES WITH COHORT & FORMAT VARIABLES
+  #-------------------------------------------------------------------------------#
+
+  print("cohort merging & feature formatting")
+
+  # merge
   dia <- dia[cohort, mget(names(dia)), on=c("outcome_id", "empi", "t0_date")]
- 
-  non_days_to_last_var <- setdiff(names(dia),grep("days_to_last", names(dia),value=T))
-  set_na_zero(dia, subset_col=non_days_to_last_var)
+  suppressWarnings(dia[, grep("dia_id$", names(dia), value=T):=NULL])
 
-  days_to_last_var <-grep("days_to_last", names(dia),value=T)
-  set_na_zero(dia, subset_col=days_to_last_var, NA)
+  # format variables
+  dia <- feature_type_format(dt=dia, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern=NA, int_feature_pattern="...", factor_feature_pattern=NA)
 
-  #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer 
-  dia_integer <- dia[, mget(setdiff(names(dia), c("outcome_id", "t0_date", "empi")))]
-  dia_integer[, names(dia_integer):=lapply(.SD, function(x) as.integer(x))]
-
-  dia <- cbind(dia[, mget(c("outcome_id", "t0_date", "empi"))], dia_integer)
-
+  # add in additional var / drop unnecessary variables
   dia[, ':='(dia_time_min=time_min, dia_time_max=time_max)]
 
-  if (length(grep("dia_id$", names(dia), value=T))>0) dia[, grep("dia_id$", names(dia), value=T):=NULL]
-
-  ## deal with date variables
-  feature_var_format_day_to_last(dia)
-
   #-------------------------------------------------------------------------------#
-  # return dia & delete key files 
-  rm(dia_integer)
+  # CLEAR MEMORY & RETURN FEATURE SET
+  #-------------------------------------------------------------------------------#
   rm(dia_timeframe_comb)
   rm(list=unlist(dia_feature_list))
   
   return (dia)
 
 }
-
 
 #----------------------------------------------------------------------------#
 

@@ -7,225 +7,297 @@
 #' @export
 #' @param file_date_var
 #' @param cohort
+#' @param cohort_key_var
 #' @param cohort_key_var_merge
+#' @param enc_file_mod_arg
 #' @return
 #' @examples
 
-enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_date_var="adm_date") {
+enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_date_var="adm_date", 
+  leak_enc_day_arg=leak_enc_day,enc_file_mod_arg=enc_file_mod) {
   
   print("launching enc_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # Load the  modified/pre-processed enc file for the specified data sample -- 
-  
-  # load the data
-   tryCatch(enc <- readRDS_merge(enc_file_mod, nested=TRUE), warning=function(w)
+  # SETUP
+  #-------------------------------------------------------------------------------#
+
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
+    
+  # load data
+  tryCatch(enc <- readRDS_merge(enc_file_mod_arg,nested=TRUE), error=function(e)
     print("no classified enc file available for the data sample"))
 
-  # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
-    store_shorten_file("enc")
+  # split into encounter types
+  enc_class <- setkey(as.data.table(enc$enc_class), empi)
+  ed        <- setkey(as.data.table(enc$ed_visit), empi)
+  op        <- setkey(as.data.table(enc$op_visit), empi)
+  ip        <- setkey(as.data.table(enc$ip_visit), empi)
+
+  print(sprintf("number of observations (enc_class): %d", nrow(enc_class)))
+  print(sprintf("number of observations (ed): %d", nrow(ed)))
+  print(sprintf("number of observations (op): %d", nrow(op)))
+  print(sprintf("number of observations (ip): %d", nrow(ip)))
+
+  # ensure that date variables exist
+  if (!(paste0(file_date_var, "_1") %in% names(enc_class))) enc_class[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
+  if (!(paste0(file_date_var, "_1") %in% names(ed))) ed[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
+  if (!(paste0(file_date_var, "_1") %in% names(op))) op[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
+  if (!(paste0(file_date_var, "_1") %in% names(ip))) ip[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
+
+  # subset to cohort
+  enc_class <- enc_class[!is.na(empi)]
+  enc_class <- enc_class[empi %in% cohort$empi]
+  ed        <- ed[!is.na(empi)]
+  ed        <- ed[empi %in% cohort$empi]
+  op        <- op[!is.na(empi)]
+  op        <- op[empi %in% cohort$empi]
+  ip        <- ip[!is.na(empi)]
+  ip        <- ip[empi %in% cohort$empi]
+
+  print(sprintf("number of observations - cohort subset (enc_class): %d", nrow(enc_class)))
+  print(sprintf("number of observations - cohort subset (ed): %d", nrow(ed)))
+  print(sprintf("number of observations - cohort subset (op): %d", nrow(op)))
+  print(sprintf("number of observations - cohort subset (ip): %d", nrow(ip)))
+
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients (enc_class)", nrow(enc_class)>0)
+  assert("observations for cohort patients (ed)", nrow(ed)>0)
+  assert("observations for cohort patients (op)", nrow(op)>0)
+  assert("observations for cohort patients (ip)", nrow(ip)>0)
+
+  # subset to smaller sample (if test_mode==TRUE)
+  if (test_mode==TRUE) {
+    
+    enc_class <- enc_class[1:min(test_row, nrow(enc_class))]
+    ed        <- ed[1:min(test_row, nrow(ed))]
+    op        <- op[1:min(test_row, nrow(op))]
+    ip        <- ip[1:min(test_row, nrow(ip))]
+
   }
 
-  # standardize column names 
-  setnames(enc$enc_class, gsub("enc_clinic","enc_op", names(enc$enc_class)))
-  enc$op_visit[, grep("enc_op", names(enc$op_visit), value=T):=NULL]
-  enc$op_visit[, grep("enc_clinic", names(enc$op_visit), value=T):=NULL]
-  enc$op_visit[, enc_op:=1]
 
   #-------------------------------------------------------------------------------#
-  # split list into 4 DT
-  enc_class <- setkey(as.data.table(enc$enc_class), empi)
-  ed <- setkey(as.data.table(enc$ed_visit), empi)
-  op <- setkey(as.data.table(enc$op_visit), empi)
-  ip <- setkey(as.data.table(enc$ip_visit), empi)
+  # ADDITIONAL SUBSETTING / FORMATTING
+  #-------------------------------------------------------------------------------#
+
+  # standardize column (names)
+  setnames_check(enc$enc_class, new=gsub("enc_clinic","enc_op", names(enc$enc_class)))
+  
+  suppressWarnings(enc$op_visit[, grep("enc_op", names(enc$op_visit), value=T):=NULL])
+  suppressWarnings(enc$op_visit[, grep("enc_clinic", names(enc$op_visit), value=T):=NULL])
+  suppressWarnings(enc$op_visit[, enc_op:=1])
+
 
   #-------------------------------------------------------------------------------#
-  # merge encounter file with cohort (cohort_key_variables) & format dates
+  # MERGING & TIMEFRAMES
+  #-------------------------------------------------------------------------------#
 
+  # Date Formatting & Merge data file with cohort & Implement leakage control
+  #-------------------------------------------------------------------------------#
+ 
   for (DT in c("enc_class", "ed", "op", "ip")) {
 
-    assign(DT, get(DT)[empi %in% cohort$empi])
+     # date formatting
+     invisible(format_date(list(get(DT)), c(file_date_var,paste0(file_date_var, "_1"))))
+    
+     # foverlaps merge
+     get(DT)[, c(paste0(file_date_var, "_1"),paste0(file_date_var, "_2")):=.(get(file_date_var))]
+    
+     assign(DT, foverlaps(get(DT), cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+       paste0(file_date_var, "_1"), paste0(file_date_var, "_2")), nomatch=0))
 
-    invisible(parse_date(get(DT), c("adm_date", "disch_date")))
-
-    get(DT)[, c("adm_date_1", "adm_date_2"):=.(adm_date)]
-
-    assign(DT,  foverlaps(get(DT), cohort[, mget(cohort_key_var_merge)],
-      by.x=c("empi", "adm_date_1", "adm_date_2"), nomatch=0))
-
-    get(DT)[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
-      units="days"))]
+     print(sprintf("number of observations - cohort subset within the relevant timeframe(s) (%s): %d", 
+      DT,nrow(get(DT))))
+    
+     ## SAMPLE SIZE CHECK #2
+     assert(sprintf("observations - cohort subset within the relevant timeframe(s) (%s)", DT), 
+       nrow(get(DT))>0)
+    
+     # time difference calculation (event date vs. t0 date)
+     get(DT)[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
+       units="days"))]
 
   }
 
   # implement leakage control 
   for (DT in c("enc_class", "ed", "op", "ip")) { 
     if (!is.na(leak_enc_day)) {
-      assign(DT,  get(DT)[!(t0_date-adm_date_1<=leak_enc_day)])
+      assign(DT,  get(DT)[!(t0_date-get(paste0(file_date_var, "_1"))<=leak_enc_day)])
     }
   }
 
+  # split data into feature timeframes
   #-------------------------------------------------------------------------------#
-  # sub setting & dividing into smaller DT based on timeframe 
-  timeframe_split(list("enc_class", "ed", "op", "ip"), "adm_date")
+  return_mult[enc_class_timeframe_comb, time_min_enc, time_max_enc]          <- timeframe_split(list("enc_class"), file_date_var)[[1]]
+  return_mult[ed_timeframe_comb, time_min_ed, time_max_ed]                   <- timeframe_split(list("ed"), file_date_var)[[1]]
+  return_mult[op_timeframe_comb, time_min_op, time_max_op]                   <- timeframe_split(list("op"), file_date_var)[[1]]
+  return_mult[ip_timeframe_comb, time_min_ip, time_max_ip]                   <- timeframe_split(list("ip"), file_date_var)[[1]]
 
-  name_ext_extended <- name_ext_extended[sapply(enc_class_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
+  name_ext_extended_tmp                                                      <- gsub("timeframe_comb", "", names(enc_class_timeframe_comb))
+  name_ext_tmp                                                               <- name_ext_extended_tmp[2:length(name_ext_extended_tmp)]
 
-  ed_timeframe_comb <- ed_timeframe_comb[sapply(enc_class_timeframe_comb, nrow)!=0]
-  op_timeframe_comb <- op_timeframe_comb[sapply(enc_class_timeframe_comb, nrow)!=0]
-  ip_timeframe_comb <- ip_timeframe_comb[sapply(enc_class_timeframe_comb, nrow)!=0]
-  enc_class_timeframe_comb <- enc_class_timeframe_comb[sapply(enc_class_timeframe_comb, nrow)!=0]
-
-  time_min_enc <- min(do.call("c", lapply(enc_class_timeframe_comb, function(x) as.Date(min(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  time_max_enc <- max(do.call("c", lapply(enc_class_timeframe_comb, function(x) as.Date(max(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  
-  time_min_ed <- min(do.call("c", lapply(ed_timeframe_comb, function(x) as.Date(min(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  time_max_ed <- max(do.call("c", lapply(ed_timeframe_comb, function(x) as.Date(max(x[, 
-    adm_date]), "%Y-%m-%d"))))
-
-  time_min_op <- min(do.call("c", lapply(op_timeframe_comb, function(x) as.Date(min(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  time_max_op <- max(do.call("c", lapply(op_timeframe_comb, function(x) as.Date(max(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  
-  time_min_ip <- min(do.call("c", lapply(ip_timeframe_comb, function(x) as.Date(min(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  time_max_ip <- max(do.call("c", lapply(ip_timeframe_comb, function(x) as.Date(max(x[, 
-    adm_date]), "%Y-%m-%d"))))
+  ## SAMPLE SIZE CHECK #3
+  assert("observations for cohort patients within relevant timeframes (enc_class)", 
+    all(sapply(enc_class_timeframe_comb, function(x) nrow(x)>0)))
+  assert("observations for cohort patients within relevant timeframes (ed)", 
+    all(sapply(ed_timeframe_comb, function(x) nrow(x)>0)))
+  assert("observations for cohort patients within relevant timeframes (op)", 
+    all(sapply(op_timeframe_comb, function(x) nrow(x)>0)))
+  assert("observations for cohort patients within relevant timeframes (ip)", 
+    all(sapply(ip_timeframe_comb, function(x) nrow(x)>0)))
 
   time_min <- min(time_min_enc, time_min_ed, time_min_ip, time_min_op)
   time_max <- max(time_max_enc, time_max_ed, time_max_ip, time_max_op)
 
   #-------------------------------------------------------------------------------#
-  # reshaping - create encounter dummies (ed/ip/op)
+  # FEATURE GENERATION
+  #-------------------------------------------------------------------------------#
+
+  # [1] Encounter count features
+  #-------------------------------------------------------------------------------#
+  print("feature generation - enc_enc.enc_enc.count")
+
   for (DT in c("ed", "op", "ip")) {
-  	assign(paste0("enc_",DT, "_timeframe_comb"), lapply(enc_class_timeframe_comb, 
-      function(x) dcast.data.table(x, outcome_id +  empi + t0_date ~ 
-      get(paste0("enc_",DT)),fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
-      value.var = "time_diff")))
+  	
+    DT_enc <- paste0("enc_",DT)
 
-  assign(paste0("enc_",DT, "_timeframe_comb"), 
-    feature_var_format(get(paste0("enc_",DT, "_timeframe_comb"))))
+    assign(paste0(DT_enc, "_timeframe_comb"), lapply(enc_class_timeframe_comb, 
+      function(x) dcast.data.table_check(data=x, 
+      formula=as.formula(paste0("outcome_id +  empi + t0_date ~ ", DT_enc)),
+      mode="basic", value.var = "time_diff")))
+
+    assign(paste0(DT_enc, "_timeframe_comb"), 
+      feature_var_format(get(paste0(DT_enc, "_timeframe_comb"))))
+    
+    inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=grep("1$", names(x), value=T), 
+      new=paste0("enc_enc.enc_enc.count..", DT, name_ext_tmp)), 
+      x=get(paste0(DT_enc, "_timeframe_comb")), name_ext_extended_tmp)
   
-  lapply(get(paste0("enc_",DT, "_timeframe_comb")), function(x) x[,
-      c("NA", "NA_days_to_last", "0", "0_days_to_last") := NULL])
-
-    mapply(function(x, name_ext) setnames(x, grep("1$", names(x), value=T), 
-      paste0("enc_enc.enc_enc.count..", DT, name_ext)), x=get(paste0("enc_",DT, 
-      "_timeframe_comb")), name_ext_extended)
-
-    mapply(function(x, name_ext) setnames(x, grep("1_days_to_last", names(x), value=T), 
-      paste0("enc_enc.enc_enc.count..", DT, "_days_to_last", name_ext)), x=get(paste0("enc_",DT, 
-      "_timeframe_comb")), name_ext_extended)
+    inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=grep("1_day_to_last", names(x), value=T), 
+      new=paste0("enc_enc.enc_enc.count..", DT, "_day_to_last", name_ext_tmp)), 
+      x=get(paste0(DT_enc, "_timeframe_comb")), name_ext_extended_tmp)
 
   }
-
+  
+  # [2] Encounter count features - by clinic name
   #-------------------------------------------------------------------------------#
-  # reshaping - create clinic_name dummies for all clinic encounters
+  print("feature generation - enc_enc.enc_enc.count_clinic.count_clinic.name")
+
   clinic_name_timeframe_comb <- lapply(enc_class_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~ clinic_name, 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
-      value.var = "time_diff"))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~ clinic_name"), 
+    mode="basic", value.var = "time_diff"))
 
   clinic_name_timeframe_comb <- feature_var_format(clinic_name_timeframe_comb)
+ 
+  inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=setdiff(names(x), c("empi", "outcome_id", 
+    "t0_date")), new=paste0("enc_enc.enc_enc.count_clinic.count_clinic.name..", 
+    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext_tmp)), 
+    x=clinic_name_timeframe_comb, name_ext_extended_tmp)
 
-  lapply(clinic_name_timeframe_comb, function(x) x[, c("NA", "NA_days_to_last") := NULL])
-  
-  mapply(function(x, name_ext) setnames(x, setdiff(names(x), c("empi", "outcome_id", 
-    "t0_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.name..", 
-    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext)), 
-    x=clinic_name_timeframe_comb, name_ext_extended)
-
+  # [3] Encounter count features - by clinic category
   #-------------------------------------------------------------------------------#
-  # reshaping - create clinic_cat dummies for all clinic encounters
+  print("feature generation - enc_enc.enc_enc.count_clinic.count_clinic.cat")
+
   clinic_cat_timeframe_comb <- lapply(enc_class_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~ clinic_cat, 
-     fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
-      value.var = "time_diff"))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~ clinic_cat"), 
+    mode="basic", value.var = "time_diff"))
+ 
   clinic_cat_timeframe_comb <- feature_var_format(clinic_cat_timeframe_comb)
 
-  lapply(clinic_cat_timeframe_comb, function(x) x[, c("NA", "NA_days_to_last") := NULL])
-  mapply(function(x, name_ext) setnames(x, setdiff(names(x), c("empi", "outcome_id", 
-    "t0_date")), paste0("enc_enc.enc_enc.count_clinic.count_clinic.cat..", 
-    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext)), 
-    x=clinic_cat_timeframe_comb, name_ext_extended)
+  inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=setdiff(names(x), 
+    c("empi", "outcome_id", "t0_date")), new=paste0("enc_enc.enc_enc.count_clinic.count_clinic.cat..", 
+    setdiff(names(x), c("empi", "outcome_id", "t0_date")), name_ext_tmp)), 
+    x=clinic_cat_timeframe_comb, name_ext_extended_tmp)
 
+  # [4] Visit count features 
   #-------------------------------------------------------------------------------#
-  # reshaping - visit dummies (ed/ip/clinic)
+  print("feature generation - enc_enc.visit_visit.count")
+
   for (DT in c("ed", "op", "ip")) {
-  	assign(paste0("visit_",DT, "_timeframe_comb"), lapply(get(paste0(
-    DT,"_timeframe_comb")), function(x) dcast.data.table(x, outcome_id + empi + 
-    t0_date ~ get(paste0("enc_",DT)), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff")))
+  	
+    visit_DT <- paste0("visit_",DT)
+    enc_DT   <- paste0("enc_",DT)
 
-  assign(paste0("visit_",DT, "_timeframe_comb"), 
-    feature_var_format(get(paste0("visit_",DT, "_timeframe_comb"))))
+    assign(paste0(visit_DT, "_timeframe_comb"), lapply(get(paste0(
+      DT,"_timeframe_comb")), function(x) dcast.data.table_check(data=x, 
+      formula=as.formula(paste0("outcome_id + empi + t0_date ~ ", enc_DT)), 
+      value.var = "time_diff", mode="basic")))
+
+    assign(paste0(visit_DT, "_timeframe_comb"), feature_var_format(get(paste0(visit_DT, 
+      "_timeframe_comb"))))
   
-  mapply(function(x, name_ext) setnames(x, grep("1$", names(x), value=T), 
-    paste0("enc_enc.visit_visit.count..", DT, name_ext)), x=get(paste0("visit_",DT, 
-    "_timeframe_comb")), name_ext_extended)
+    inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=grep("1$", names(x), value=T), 
+      new=paste0("enc_enc.visit_visit.count..", DT, name_ext_tmp)), x=get(paste0(visit_DT, 
+      "_timeframe_comb")), name_ext_extended_tmp)
 
-  mapply(function(x, name_ext) setnames(x, grep("1_days_to_last", names(x), value=T), 
-    paste0("enc_enc.visit_visit.count..", DT, "_days_to_last", name_ext)), x=get(paste0("visit_",DT, 
-    "_timeframe_comb")), name_ext_extended)
+    inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=grep("1_day_to_last", 
+      names(x), value=T), new=paste0("enc_enc.visit_visit.count..", DT, "_day_to_last", name_ext_tmp)), 
+      x=get(paste0(visit_DT, "_timeframe_comb")), name_ext_extended_tmp)
+  
   }
 
+  # [5] IP LOS features 
   #-------------------------------------------------------------------------------#
-  # reshaping - number of inpatient days
+  print("feature generation - enc_enc.los")
+
 	ip_days_timeframe_comb <- lapply(ip_timeframe_comb, function(x) 
-    x[, .(ip_days=sum(los)),
-    by = c("outcome_id", "empi", "t0_date")])
-  mapply(function(x, name_ext) setnames(x, c("ip_days"), 
-    paste0("enc_enc.los..ip", name_ext)), x=ip_days_timeframe_comb,
-    name_ext_extended)
+    x[, .(ip_days=sum(los, na.rm=TRUE)), by = c("outcome_id", "empi", "t0_date")])
+  
+  inv_mapply(function(x, name_ext_tmp) setnames_check(x, old=c("ip_days"), 
+    new=paste0("enc_enc.los..ip", name_ext_tmp)), x=ip_days_timeframe_comb,
+    name_ext_extended_tmp)
 
   #-------------------------------------------------------------------------------#
-  # merge utilization feature files
+  # FEATURE MERGING
+  #-------------------------------------------------------------------------------#
+
+  print("feature merging")
+
   enc_feature_list <- list("enc_ed_timeframe_comb", "enc_ip_timeframe_comb", 
     "enc_op_timeframe_comb", "clinic_name_timeframe_comb", 
     "clinic_cat_timeframe_comb", "visit_ed_timeframe_comb", 
     "visit_ip_timeframe_comb", "visit_op_timeframe_comb", 
     "ip_days_timeframe_comb")
+  enc_feature_list <- enc_feature_list[which(enc_feature_list %in% ls())]
 
-  timeframe_combine(enc_feature_list)
-  
-  enc <- Reduce(mymerge, mget(unlist(enc_feature_list)))
+  # combine features across feature timeframes
+  enc_list_tmp <- timeframe_combine(mget(unlist(enc_feature_list)), enc_feature_list)
+
+  # combine features across feature types
+  enc <- Reduce(mymerge, enc_list_tmp)
 
   #-------------------------------------------------------------------------------#
-  # merge with cohort file - empty records -> 0
+  # MERGE FEATURES WITH COHORT & FORMAT VARIABLES
+  #-------------------------------------------------------------------------------#
+
+  print("cohort merging & feature formatting")
+
+  # merge
   enc <- enc[cohort, mget(names(enc)), on=c("outcome_id", "empi", "t0_date")]
+  suppressWarnings(enc[, grep("enc_id$|visit_id$", names(enc), value=T):=NULL])
+
+  # format variables
+  enc <- feature_type_format(dt=enc, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern=NA, int_feature_pattern="...", factor_feature_pattern=NA)
   
-  non_days_to_last_var <- setdiff(names(enc),grep("days_to_last", names(enc),value=T))
-  set_na_zero(enc, subset_col=non_days_to_last_var)
-
-  days_to_last_var <-grep("days_to_last", names(enc),value=T)
-  set_na_zero(enc, subset_col=days_to_last_var, NA)
-
-  #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer 
-  enc_integer <- enc[, mget(setdiff(names(enc), c("outcome_id", "t0_date", "empi")))]
-  enc_integer[, names(enc_integer):=lapply(.SD, function(x) as.integer(x))]
-
-  enc <- cbind(enc[, mget(c("outcome_id", "t0_date", "empi"))], enc_integer)
-
+  # add in additional var / drop unnecessary variables
   enc[, ':='(enc_time_min=time_min, enc_time_max=time_max)]
-  
-  if (length(grep("enc_id$|visit_id$", names(enc), value=T))>0) enc[, grep("enc_id$|visit_id$", names(enc), value=T):=NULL]
-
-  feature_var_format_day_to_last(enc)
 
   #-------------------------------------------------------------------------------#
-  # return utilization files & delete key files created in function
-  rm(enc_integer)
+  # CLEAR MEMORY & RETURN FEATURE SET
+  #-------------------------------------------------------------------------------#
   rm(enc_class_timeframe_comb)
   rm(list=unlist(enc_feature_list))
 
-	return(enc)
+  return(enc)
 
 }
 

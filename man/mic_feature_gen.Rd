@@ -5,7 +5,8 @@
 \title{Generate microbiology-related features (mic data).}
 \usage{
 mic_feature_gen(cohort, cohort_key_var_merge, cohort_key_var,
-  file_date_var = "mic_date")
+  file_date_var = "mic_date", mic_file_mod_arg = mic_file_mod,
+  leak_mic_day_arg = leak_mic_day)
 }
 \description{
 \

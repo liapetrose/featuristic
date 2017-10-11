@@ -6,8 +6,20 @@
 \usage{
 lvs_feature_gen(cohort, cohort_key_var_merge, cohort_key_var,
   lvs_file_mod_arg = lvs_file_mod, leak_lvs_day_arg = leak_lvs_day,
-  combine = FALSE, lvs_file_mod_ext = NA, lvs_file_mod_ext_ext = NA,
-  load = TRUE, file_date_var = "lvs_date")
+  file_date_var = "lvs_date")
+}
+\arguments{
+\item{cohort}{cohort dt}
+
+\item{cohort_key_var_merge}{list of key identifiers on which to merge (see: feature_initialisation)}
+
+\item{cohort_key_var}{list of key identifiers on which to merge (see: feature_initialisation)}
+
+\item{lvs_file_mod_arg}{list of master files which are to be loaded (see: control.R)}
+
+\item{leak_lvs_day_arg}{name of variable specifying the relevant number of leakage days (see control.R)}
+
+\item{file_date_var}{}
 }
 \description{
 \

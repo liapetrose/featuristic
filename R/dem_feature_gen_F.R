@@ -5,8 +5,9 @@
 #' @description \
 #'
 #' @export
-#' @param cohort
-#' @param cohort_key_var_merge
+#' @param cohort cohort dt
+#' @param cohort_key_var_merge list of key identifiers on which to merge (see: feature_initialisation)
+#' @param cohort_key_var list of key identifiers on which to merge (see: feature_initialisation)
 #' @return
 #' @examples
 
@@ -15,74 +16,96 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   print("launching dem_feature_gen")
  
   #-------------------------------------------------------------------------------#
-  #load the raw file & load requisite helpers
+  # SETUP
+  #-------------------------------------------------------------------------------#
 
-  ## raw file
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
+
+  # load data
   dem <- readRDS_merge(dem_file_mod)
+
+  print(sprintf("number of observations: %d", nrow(dem)))
+
+  # subset - unique (one row per patient)
   dem <- unique(dem, by=c("empi"))
 
+  # subset to cohort, i.e. merge with cohort
+  dem <- dem[cohort, as.list(c(mget(setdiff(names(dem), "empi")),
+    mget(cohort_key_var_merge))), on=c("empi"), nomatch=0]
+
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients", nrow(dem)>0)
+
   # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
+  if (test_mode==TRUE) {
     store_shorten_file("dem")
   }
 
+  # Date Formatting 
   #-------------------------------------------------------------------------------#
-  # merge demographics file with cohort (cohort_key_var_merge) & format/rename 
-  # dates & report number of patients with no complete dem information 
-  ## NOTE: multiple rows per patient - to allow for the incorporation of time 
-  ##       dependent data (age, flu data...)
-  ## NOTE: remove missing observations, cohort observations with no dem record (empi)
-  dem <- dem[cohort, as.list(c(mget(setdiff(names(dem), "empi")),mget(cohort_key_var_merge))), 
-    on=c("empi"), nomatch=0]
-
-  print(sprintf("number of cohort observations with no dem record: %d, 
-  	number of patients with no dem record: %d, number of cohort observations with a dem_record -
-    this should be the final number of rows:%d", nrow(cohort[!empi %in% dem$empi]),
-  	nrow(unique(cohort[!empi %in% dem$empi], by=c("empi"))),
-    nrow(cohort[empi %in% dem$empi])))
-
-  # XXX NOTE: Always check date output
-  invisible(parse_date(dem, c("date_of_birth", "date_of_death"), 
-    c("dob", "dod")))
+  
+  # date formatting
+  invisible(format_date(list(dem), c("date_of_birth", "date_of_death")))
+  setnames(dem, c("date_of_birth", "date_of_death"), c("dob", "dod"))
 
   #-------------------------------------------------------------------------------#
+
+
+  #-------------------------------------------------------------------------------#
+  # FEATURE GENERATION - STATIC
+  #-------------------------------------------------------------------------------#
+
+  # [1] Basic features 
+  #-------------------------------------------------------------------------------#
+  print("feature generation - dem.basic")
+
   # age
   dem[,age:=difftime(t0_date,dob, units="days")/365]
   
-  # impose variable categories (dem_dem.basic..//dem_dem.basic_race..)
-  setnames(dem, setdiff(names(dem), cohort_key_var_merge),
-    paste0("dem_dem.basic..", setdiff(names(dem), cohort_key_var_merge)))
-  setnames(dem, grep("race.", names(dem), value=T), gsub("\\.\\.", "_race..",
-    grep("race.", names(dem), value=T)))
+  # race
+  race_clean <- group_race(dem, "race")
+  dem[, race:=race_clean]
 
-  #-------------------------------------------------------------------------------#
-  # subset to the relevant columns
+  # language
+  language_clean <- group_language(dem, "language")
+  dem[, language:=language_clean]
+
+  # marital status
+  marital_status_clean <- group_marital_status(dem, "marital_status")
+  dem[, marital_status:=marital_status_clean]
+
+  # religion
+  religion_clean <- group_religion(dem, "religion")
+  dem[, religion:=religion_clean]
+
+  # misc - rename
+  setnames_check(dem, old=setdiff(names(dem), cohort_key_var_merge),
+    new=paste0("dem_dem.basic..", setdiff(names(dem), cohort_key_var_merge)))
+
+  # subset to relevant columns
   remove_var <- grep("dob$|dod$|vital_status$", names(dem), value=T)
-  dem[, c(remove_var):=NULL]
-
-  dem[, grep("dem_id", names(dem), value=T):=NULL]
-  
-  #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer & factor
-  dem_factor <- dem[, mget(setdiff(grep("dem.basic", names(dem), value=T), 
-    c("dem_dem.basic..age")))]
-  dem_factor[, names(dem_factor):=lapply(.SD, function(x) as.factor(x))]
-
-  dem_numeric <- dem[, mget(c("dem_dem.basic..age"))]
-  dem_numeric[, names(dem_numeric):=lapply(.SD, function(x) as.numeric(round(x, digits=2)))]
-
-  dem <- cbind(dem[, mget(c("outcome_id", "t0_date", "empi"))], dem_factor, 
-    dem_numeric)
+  suppressWarnings(dem[, c(remove_var):=NULL])
 
   #-------------------------------------------------------------------------------#
-  # return demographic file  & delete key files creted in function
+  # FORMAT VARIABLES
+  #-------------------------------------------------------------------------------#
 
-  print(sprintf("final number of rows: %d", nrow(dem)))
+  print("cohort merging & feature formatting")
 
-  rm(dem_factor, dem_numeric)
+  # merge
+  suppressWarnings(dem[, grep("dem_id$", names(dem), value=T):=NULL])
+
+  # format variables
+  dem <- feature_type_format(dt=dem, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern="dem_dem.basic..age", 
+    factor_feature_pattern="...",
+    int_feature_pattern=NA) 
+
+  #-------------------------------------------------------------------------------#
+  # CLEAR MEMORY & RETURN FEATURE SET
+  #-------------------------------------------------------------------------------#
   return(dem)
-
-
 
 }
 

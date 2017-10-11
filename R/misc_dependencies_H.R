@@ -38,17 +38,17 @@ readRDS_merge <- function(file_name_list, nested=FALSE) {
         lapply(file_temp_list, function(x) rm(x))
         return(temp)
 
-  } else if ( length(file_name_list)>1 & nested==TRUE) {
+  } else if (length(file_name_list)>1 & nested==TRUE) {
         
         for(i in 1:length(file_name_list)) {
            assign(paste0("temp_dt_", i), readRDS(file_name_list[i][[1]]))
         }
 
         temp_name <- names(temp_dt_1)
-        temp <- lapply(   temp_name, function(table_name) lapply(mget(paste0("temp_dt_", 1:length(file_name_list)), 
+        temp      <- lapply(   temp_name, function(table_name) lapply(mget(paste0("temp_dt_", 1:length(file_name_list)), 
           sys.frame(sys.parent(n=2))), function(x) x[[table_name]]))
-        temp <- lapply(temp, function(x) rbindlist(x, use.names=T, fill=T))
-        temp <- lapply(temp, function(x) unique(x, by=c(setdiff(names(x), 
+        temp      <- lapply(temp, function(x) rbindlist(x, use.names=T, fill=T))
+        temp      <- lapply(temp, function(x) unique(x, by=c(setdiff(names(x), 
           grep("_id$", names(x),value=T)))))
 
         names(temp) <-  temp_name
@@ -58,57 +58,6 @@ readRDS_merge <- function(file_name_list, nested=FALSE) {
         return(temp)
 
   }
-
-}
-
-#----------------------------------------------------------------------------#
-# parse_date
-#----------------------------------------------------------------------------#
-parse_date <- function(dt_vector, column_name_list,column_name_list_new=column_name_list) {
-  
-  # purpose: 
-  # automate detection and standardization of date variables - return verification output 
-  # and standardized dates (IDate)
-
-  # arguments:
-  # dt_vector: DT or character vector
-
-  #  below options only apply if the input is a DT
-  #  column_name_list: list of names of date columns to be parsed
-  #  column_name_list_new: list of names of new (parsed) date columns to be generated (default to 
-  #                        names of original columns, i.e.replace existing date columns)
-
-  # returns:
-  # DT with formatted dates
-
-  if (class(dt_vector)[1]=="data.table") {
-
-    DT <- dt_vector
-
-    lapply(column_name_list, function(x) print(head(DT[!is.na(get(x)) & 
-      as.character(get(x))!="" , get(x)],15)))
-    lapply(column_name_list, function(x) DT[, c(x):=as.Date(parse_date_time(get(x), 
-     c("mdy","ymd","dby","myd", "dmy", "bdy")))])
-    lapply(column_name_list, function(x) print(head(DT[!is.na(get(x)), get(x)],15)))
-      setnames(DT, column_name_list, column_name_list_new)
-    non_date <- names(DT)[sapply(DT, function(x) sum(is.na(x))==nrow(DT))]
-
-    if(length(non_date)>0){
-      DT[, c(non_date):=lapply(.SD, function(x) as.character(x)), .SDcols=non_date]
-    }
-
-  } 
-
-    if (class(dt_vector)[1]=="character") {
-
-    string <- dt_vector
-
-    print(string[1:15])
-    string <- as.Date(parse_date_time(string, 
-      c("mdy","ymd","dby","myd", "dmy", "bdy")))
-    print(string[1:15])
-
-  } 
 
 }
 
@@ -529,30 +478,6 @@ list_space <- function(list_name, argument="space") {
 }
 
 
-#----------------------------------------------------------------------------#
-# store_shorten_file
-#----------------------------------------------------------------------------#
-store_shorten_file <- function(DT, test_row) {
-
-  # purpose: 
-  # save copy of DT and replace the DT itself with a shortened version of itself
-  # (useful when debugging scripts - run script with subset of data without changing file names)
-
-
-  # arguments:
-  #  DT: name of DT
-  #  test_row: number of rows to keep in shortened table
- 
-  # return:
-  #  original DT (name_copy) & shortened table (name) are stored in global environment
-
-  # sample usage:
-  #  store_shorten_file("test")
-
-  assign(paste0(DT, "_copy"), copy(get(DT,sys.frame(sys.parent(n=1)))),sys.frame(sys.parent(n=1)))
-  assign(DT, get(DT,sys.frame(sys.parent(n=1)))[1:test_row], sys.frame(sys.parent(n=1)))
-
-}
 
 #----------------------------------------------------------------------------#
 # inv_lapply
@@ -592,6 +517,155 @@ inv_mapply <- function(FUN,...) {
 
 }
 
+#----------------------------------------------------------------------------#
+# format_date
+#----------------------------------------------------------------------------#
+
+format_date <- function(file_list, date_list) {
+
+  lapply(file_list, function(dt) {
+
+    lapply(date_list,function(date_col) {
+
+      dt[, c(date_col[[1]]):=as.Date(get(date_col[[1]]))]
+
+    })
+  })
+
+}
+
+#----------------------------------------------------------------------------#
+# dcast.data.table_check
+#----------------------------------------------------------------------------#
+
+dcast.data.table_check <- function(..., data, mode, subset=as.character(as.quoted("!is.na(empi)"))) {
+
+  # subset
+  subset_tmp <- copy(subset)
+  data_tmp   <- data[eval(parse(text=subset_tmp))]
+  
+   # check
+  if (nrow(data_tmp)>0) {
+
+    # cast
+    if (mode=="numeric")  {
+    
+      # cast - numeric
+      data_cast <- dcast.data.table(..., data=data_tmp, subset=NULL, fun.aggregate=list(min, max, mean, sd))
+    
+    } else if (mode=="basic") {
+
+      # cast - categorical + day to last
+      data_cast <- dcast.data.table(..., data=data_tmp, subset=NULL, fun.aggregate=list(length, function(x) min(x, na.rm=T)))
+
+    } else if (mode=="length") {
+
+      # cast - categorical 
+      data_cast <- dcast.data.table(..., data=data_tmp, subset=NULL, fun.aggregate=list(length))
+
+    } else if (mode=="sum") {
+
+      # cast - sum
+      data_cast <- dcast.data.table(..., data=data_tmp, subset=NULL, fun.aggregate=function(y) sum(as.numeric(y), na.rm=T))
+
+
+    }
+
+  } else {
+
+    # no casting
+    return(data.table(empi = character(0), outcome_id = numeric(0), t0_date=numeric(0)))
+
+  }
+
+}
+
+
+#----------------------------------------------------------------------------#
+# melt_check
+#----------------------------------------------------------------------------#
+
+melt_check <- function(...,variable.name,value.name) {
+
+  # melt
+  variable.name_tmp <- "variable.name_xxxx"
+  value.name_tmp    <- "value.name_xxxx"
+
+  # ensure that variables are name correctly
+  melt_data <-    as.data.table(melt(...,variable.name=variable.name_tmp,value.name=value.name_tmp))
+
+  # proper naming
+
+  if (length(grep(variable.name_tmp,names(melt_data), value=T))>0) {
+
+      setnames(melt_data, grep(variable.name_tmp,names(melt_data), value=T),
+        variable.name)
+      setnames(melt_data, grep(value.name_tmp,names(melt_data), value=T),
+        value.name)
+
+  } else {
+
+      melt_data[, c(variable.name):=""]
+      melt_data[, c(value.name):=""]
+
+  }
+
+  # return
+  return(melt_data)
+
+}
+
+#----------------------------------------------------------------------------#
+# non_missing
+#----------------------------------------------------------------------------#
+
+non_missing <- function(var_name)  {
+
+  var_name_tmp <- copy(var_name)
+ 
+  subset_tmp = as.quoted(paste0("!is.na(", var_name_tmp, ") & !is.null(", var_name_tmp, 
+    ") & !(", var_name_tmp,"=='')"))
+
+  subset_tmp = as.character(subset_tmp)
+
+  return(subset_tmp)
+
+}
+
+
+#----------------------------------------------------------------------------#
+# equal_to
+#----------------------------------------------------------------------------#
+
+equal_to <- function(var_name, value)  {
+
+  var_name_tmp <- copy(var_name)
+ 
+  subset_tmp = as.quoted(paste0(var_name_tmp,"=='", value,"'"))
+
+  subset_tmp = as.character(subset_tmp)
+
+  return(subset_tmp)
+
+}
+
+#----------------------------------------------------------------------------#
+# setnames_check
+#----------------------------------------------------------------------------#
+
+setnames_check <- function(..., old=NA,new) {
+
+  # check
+  if (!(is.null(old)) && !(is.na(old)) && length(old)==length(new)) {
+
+    setnames(..., old=old, new=new)
+
+  } else if (length(old)>0 && !(is.null(old)) && is.na(old)) {
+
+    setnames(..., new)
+  }
+
+}
 
 #----------------------------------------------------------------------------#
 # one_hot_encoding
@@ -662,5 +736,178 @@ one_hot_encoding <- function (dt, var_list, drop = FALSE) {
 }
 
 #----------------------------------------------------------------------------#
+# return_mult
+#----------------------------------------------------------------------------#
+
+#' Store multiple arguments returned from function as separate objects - function. 
+
+"[<-.result"  <- function(x,...,value) {
+
+   args <- as.list(match.call())
+   args <- args[-c(1:2,length(args))]
+   length(value) <- length(args)
+   for(i in seq(along=args)) {
+     a <- args[[i]]
+     if(!missing(a)) eval.parent(substitute(a <- v,list(a=a,v=value[[i]])))
+   }
+   x
+}
+
+
+#' Store multiple arguments returned from function as separate objects - structure. 
+return_mult <- structure(NA,class="result")
+
+
+
+#----------------------------------------------------------------------------#
+# group_race
+#----------------------------------------------------------------------------#
+
+
+# Classify given race as one of the conventional medical groups- white, black, hispanic, other.
+
+group_race <- function(data, race_col = "race") {
+
+  # create copy so as to not modify provided data.table
+  fn_data <- copy(data)
+
+  # create new temporary column
+  fn_data[, race_group := "none", ]
+
+  # race regular expressions
+  black_race_regex    <- "black|african"
+  hispanic_race_regex <- "hispanic"
+  white_race_regex    <- "white|european"
+
+  # convert races to grouped versions 
+  fn_data[(tolower(get(race_col)) %like% black_race_regex & race_group == "none"), race_group := "black"]
+  fn_data[(tolower(get(race_col)) %like% hispanic_race_regex & race_group == "none"), race_group := "hispanic"]
+  fn_data[(tolower(get(race_col)) %like% white_race_regex & race_group == "none"), race_group := "white"]
+  fn_data[race_group == "none", race_group := "other"]
+
+  # set none > missing
+  fn_data[race_group == "none",race_group :=NA]
+
+  # return
+  return(fn_data[,race_group])
+}
+
+#----------------------------------------------------------------------------#
+# group_religion
+#----------------------------------------------------------------------------#
+
+# Classify given religion as one of a number of aggregated categories
+
+group_religion <- function(data, religion_col = "religion") {
+
+  # create copy so as to not modify provided data.table
+  fn_data <- copy(data)
+
+  # create new temporary column
+  fn_data[, religion_group := "", ]
+
+  # religion regular expressions
+  na_religion_regex            <- "other|^none$|^non$|no preference"
+  non_religious_religion_regex <- "agnostic|atheist"
+
+  # convert religions to grouped versions 
+  fn_data[(tolower(get(religion_col)) %like% na_religion_regex & religion_group == ""), religion_group := "none"]
+  fn_data[(tolower(get(religion_col)) %like% non_religious_religion_regex & religion_group == ""), religion_group := "non_religious"]
+  fn_data[religion_group == "", religion_group := "religious"]
+
+  # set none > missing
+  fn_data[religion_group %in% c("none",""),religion_group :=NA]
+
+  # return
+  return(fn_data[,religion_group])
+}
+
+#----------------------------------------------------------------------------#
+# group_marital_status
+#----------------------------------------------------------------------------#
+
+# Classify given marital status as one of a number of aggregated categories
+
+group_marital_status <- function(data, marital_status_col = "marital_status") {
+
+  # create copy so as to not modify provided data.table
+  fn_data <- copy(data)
+
+  # create new temporary column
+  fn_data[, marital_status_group := "", ]
+
+  # marital_status regular expressions
+  na_marital_status_regex            <- "other"
+  partnership_marital_status_regex   <- "common law|married|partner"
+  separated_marital_status_regex     <- "divorced|separated"
+  widowed_marital_status_regex       <- "widowed|separated"
+  single_marital_status_regex        <- "single"
+
+  # convert marital_statuss to grouped versions 
+  fn_data[(tolower(get(marital_status_col)) %like% na_marital_status_regex & marital_status_group == ""), marital_status_group := "none"]
+  fn_data[(tolower(get(marital_status_col)) %like% partnership_marital_status_regex & marital_status_group == ""), marital_status_group := "partnership"]
+  fn_data[(tolower(get(marital_status_col)) %like% separated_marital_status_regex & marital_status_group == ""), marital_status_group := "separated"]
+  fn_data[(tolower(get(marital_status_col)) %like% widowed_marital_status_regex & marital_status_group == ""), marital_status_group := "widowed"]
+  fn_data[(tolower(get(marital_status_col)) %like% single_marital_status_regex & marital_status_group == ""), marital_status_group := "single"]
+
+  # set none > missing
+  fn_data[marital_status_group %in% c("","none"),marital_status_group :=NA]
+
+  # return
+  return(fn_data[,marital_status_group])
+}
+
+
+#----------------------------------------------------------------------------#
+# group_language
+#----------------------------------------------------------------------------#
+
+# Classify given language as one of a number of aggregated categories
+
+group_language <- function(data, language_col = "language") {
+
+  # create copy so as to not modify provided data.table
+  fn_data <- copy(data)
+
+  # create new temporary column
+  fn_data[, language_group := "", ]
+
+  # language regular expressions
+  na_language_regex            <- "other|unavailable|declined"
+  english_language_regex       <- "english"
+
+  # convert languages to grouped versions 
+  fn_data[(tolower(get(language_col)) %like% na_language_regex & language_group == ""), language_group := "none"]
+  fn_data[(tolower(get(language_col)) %like% english_language_regex & language_group == ""), language_group := "english"]
+  fn_data[language_group == "", language_group := "non_english"]
+
+  # set none > missing
+  fn_data[language_group %in% c("","none"),language_group :=NA]
+
+  # return
+  return(fn_data[,language_group])
+}
+
+
+#----------------------------------------------------------------------------#
+# missing_zero_perc
+#----------------------------------------------------------------------------#
+
+missing_zero_perc <- function(var, verbose=FALSE) {
+
+  # missing_perc
+  na_perc                      <- perc(sum(is.na(var)),length(var))
+  if (verbose==TRUE) na_perc   <- paste0("NA (%): ",na_perc)
+
+  # zero_perc
+  zero_perc                    <- perc(sum(var==0, na.rm=TRUE),length(var))
+  if (verbose==TRUE) zero_perc <- paste0("Zero (%): ",zero_perc)
+
+  return(c(na_perc,zero_perc))
+}
+
+#----------------------------------------------------------------------------#
+
+
 
 

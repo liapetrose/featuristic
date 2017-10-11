@@ -13,9 +13,10 @@
 ## > these folders should be located in the project-specific folder on 
 # the zolab server 
 
-temp_folder           <- "/data/zolab/featuristic/test_project/temp/"              #[MODIFY]
-modified_folder       <- "/data/zolab/featuristic/test_project/modified/"          #[MODIFY]
-output_folder         <- "/data/zolab/featuristic/test_project/output/"            #[MODIFY]
+project_path          <- "/data/zolab/featuristic/test_project/" 
+temp_folder           <- paste0(project_path, "temp/")              #[MODIFY]
+modified_folder       <- paste0(project_path, "modified/")          #[MODIFY]
+output_folder         <- paste0(project_path, "output/")            #[MODIFY]
 
 # [B] data 
 #----------------------------------------------------------------------------#
@@ -58,7 +59,7 @@ lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k)
 # --------------
 
 ## > Generate ed encounter/order features
-ed_enc_file_mod       <- list(edadmin_ed_master_bwh_ed_100k)
+ed_enc_file_mod     <- list(edadmin_ed_master_bwh_ed_100k)
 
 # DFCI - ONCDRS    															 #[MODIFY]
 # --------------
@@ -83,19 +84,16 @@ dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
 #----------------------------------------------------------------------------#
 #----------------------------------------------------------------------------#
 
-# NOTE: STILL TO TEST
-## > "mic", "lab"," "enc_oncdrs_rpdr","med_chemo_oncdrs_rpdr"
-
 # [1] feature types to assemble                                            #[MODIFY]
 #--------------------------------#
 # specify the feature categories which are to be assembled (stage-1)
 
 assemble_list <- list(                                                  	
   # basic
-  "dem", "prc", "lvs","enc","ed","med","dia",
+  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
   "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
   # combined
-  "dia_oncdrs_rpdr","lab_oncdrs_rpdr"
+  "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]
@@ -103,11 +101,11 @@ assemble_list <- list(
 # specify the feature categories which are to be compiled (stage-2)
 
 compile_list <- list(
-	# basic
-	"dem", "prc", "lvs", "enc", "ed", "med", "dia", 
-	"dia_oncdrs", "chemo_oncdrs", "med_oncdrs","enc_oncdrs","lab_oncdrs",
-	# combined
-	"dia_oncdrs_rpdr",  "lab_oncdrs_rpdr"
+  # basic
+  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
+  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
+  # combined
+  "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 
@@ -162,8 +160,8 @@ indic_missing_threshold <- list(30, 50, 40, 30)									  #[MODIFY]
 timeframe_list                           <- list()                                 #[DO NOT MODIFY]
 
 ## specify the timeframes
-timeframe_list$timeframe_end$length      <- 1460                                #[MODIFY]
-timeframe_list$timeframe_end$name        <- "timeframe_1m_4y"
+timeframe_list$timeframe_end$length      <- 2190                                #[MODIFY]
+timeframe_list$timeframe_end$name        <- "timeframe_1m_6y"
 timeframe_list$timeframe_end$name_abb    <- "end"
 
 timeframe_list$timeframe_short$length    <- 30
@@ -200,12 +198,12 @@ leak_list <- list()                                                             
 leak_list$leak_dem_day 					<- 0                                        #[MODIFY]
 leak_list$leak_enc_day 					<- 0
 leak_list$leak_dia_day 					<- 0
-leak_list$leak_prc_day 					<- 0
-leak_list$leak_lvs_day 					<- 0
-leak_list$leak_lab_day 					<- 0
+leak_list$leak_prc_day 					<- NA
+leak_list$leak_lvs_day 					<- NA
+leak_list$leak_lab_day 					<- NA
 leak_list$leak_med_day 					<- 0
 leak_list$leak_mic_day 					<- 0
-leak_list$leak_ed_day  					<- 0
+leak_list$leak_ed_day  					<- NA
 
 # [5] imputation
 #--------------------------------#
@@ -214,8 +212,8 @@ leak_list$leak_ed_day  					<- 0
 ##---------------
 # specify whether to impute non-present indicator variables (e.g. a non-occurring diagnosis), i.e.
 # whether to assume that such variables = 0 (mis_imp=TRUE) or are actually missing/unknown (mis_imp=FALSE)
-## > If set to FALSE: Specify whether to NOT impute all indicator variables  (non_impute_var_cat=NA)
-##   or to not impute only a subset of indicator variables (impute_var_cat="regx1|regx2" where
+## > If set to FALSE: Specify whether to NOT impute all indicator variables  (impute_var_cat=NA)
+##   or to NOT impute only a subset of indicator variables (impute_var_cat="regx1|regx2" where
 ##   regx1, regx2 stand for regular expression patterns that identify specific variable categories, e.g. "dia_dia.count"
 ##   which ARE to be imputed)
 
@@ -227,8 +225,8 @@ impute_var_cat         <- "dia_dia.count"
 # specified median imputation procedure ("fill_na_method") (fill_na=TRUE)
 ## > supported imputation procedures: "median_imputation"
 
-fill_na          <- FALSE                                                             #[MODIFY]
-fill_na_method   <- "median_imputation"
+fill_na                <- FALSE                                                        #[MODIFY]
+fill_na_method         <- "median_imputation"
 
 # [E] additional feature construction settings
 # * (!) NOTE - these settings should generally be left at their default value
@@ -238,11 +236,11 @@ fill_na_method   <- "median_imputation"
 # [1] test mode
 #----------------------------------------------------------------------------#
 # specify whether to run the codebase in test mode, i.e. whether to use
-# a subset of all data files and the cohort to generate the features (test_raw_file=TRUE / 
+# a subset of all data files and the cohort to generate the features (test_mode=TRUE / 
 #  test_row = [max number of rows which are to be used])
 
-test_raw_file <- FALSE  
-test_row 	  <- 20000  
+test_mode           <- FALSE  
+test_row 	          <- 20000  
 
 
 #----------------------------------------------------------------------------#

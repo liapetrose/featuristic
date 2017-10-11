@@ -4,7 +4,7 @@
 \alias{timeframe_combine}
 \title{Combine a dataframe split into different timeframes.}
 \usage{
-timeframe_combine(DT_list, var_list = cohort_key_var)
+timeframe_combine(DT_list, DT_list_name, var_list = cohort_key_var)
 }
 \arguments{
 \item{DT_list}{}

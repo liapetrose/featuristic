@@ -8,6 +8,7 @@
 #' @export
 #' @param cohort
 #' @param cohort_key_var_merge
+#' @param cohort_key_var
 #' @return
 #' @examples
 
@@ -17,12 +18,16 @@
   print("launching med_chemo_oncdrs_rpdr_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # load the dia_feature code
-  med_chemo_oncdrs_rpdr <- med_feature_gen(cohort, cohort_key_var_merge, cohort_key_var, 
-  	med_oncdrs_file_mod, leak_med_day, 
-  	combine=TRUE, med_file_mod, chemo_oncdrs_file_mod)
+  # Source > med_feature_gen
+  #-------------------------------------------------------------------------------#
+  med_chemo_oncdrs_rpdr <- med_feature_gen(cohort=cohort, cohort_key_var_merge=cohort_key_var_merge, 
+    cohort_key_var=cohort_key_var, med_file_mod_arg=med_oncdrs_file_mod, 
+    leak_med_day_arg=leak_med_day, combine=TRUE, med_file_mod_ext=med_file_mod, 
+    med_file_mod_ext_ext=chemo_oncdrs_file_mod, file_date_var="med_date")
 
-  ### return
+  #-------------------------------------------------------------------------------#
+  # Return
+  #-------------------------------------------------------------------------------#
   return(med_chemo_oncdrs_rpdr)
 
 }

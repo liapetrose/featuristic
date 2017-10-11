@@ -15,6 +15,7 @@
 #' @import reshape2
 #' @import stringr
 #' @import tidyr
+#' @import testit 
 #' @import zoo
 #' @import imputeMissings
 #' @export 

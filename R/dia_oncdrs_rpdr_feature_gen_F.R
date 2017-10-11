@@ -7,6 +7,7 @@
 #' @export
 #' @param cohort
 #' @param cohort_key_var_merge 
+#' @param cohort_key_var
 #' @return
 #' @examples
 
@@ -15,11 +16,16 @@
   print("launching dia_oncdrs_rpdr_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # load the dia_feature code
-  dia_oncdrs_rpdr <- dia_feature_gen(cohort, cohort_key_var_merge, cohort_key_var, 
-  	dia_oncdrs_file_mod, leak_dia_day, combine=TRUE, dia_file_mod)
+  # Source > dia_feature_gen
+  #-------------------------------------------------------------------------------#
+  dia_oncdrs_rpdr <- dia_feature_gen(cohort=cohort, cohort_key_var_merge=cohort_key_var_merge, 
+    cohort_key_var=cohort_key_var, dia_file_mod_arg=dia_oncdrs_file_mod, 
+    leak_dia_day_arg=leak_dia_day, combine=TRUE, dia_file_mod_ext=dia_file_mod, 
+    file_date_var="dia_date")
 
-  ### return
+  #-------------------------------------------------------------------------------#
+  # Return
+  #-------------------------------------------------------------------------------#
   return(dia_oncdrs_rpdr)
 
 }

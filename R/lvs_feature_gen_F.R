@@ -5,179 +5,187 @@
 #' @description \
 #'
 #' @export
-#' @param cohort
-#' @param cohort_key_var_merge
-#' @param lvs_file_mod_arg
-#' @param leak_lvs_day_arg
-#' @param combine
-#' @param lvs_file_mod_ext
-#' @param lvs_file_mod_ext_ext
-#' @param load
-#' @param file_date_var
+#' @param cohort cohort dt
+#' @param cohort_key_var_merge list of key identifiers on which to merge (see: feature_initialisation)
+#' @param cohort_key_var list of key identifiers on which to merge (see: feature_initialisation)
+#' @param lvs_file_mod_arg list of master files which are to be loaded (see: control.R) 
+#' @param leak_lvs_day_arg name of variable specifying the relevant number of leakage days (see control.R)
+#' @param file_date_var 
 #' @return
 #' @examples
 
 
-lvs_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, lvs_file_mod_arg=lvs_file_mod, 
-  leak_lvs_day_arg=leak_lvs_day, combine=FALSE, 
-  lvs_file_mod_ext=NA, lvs_file_mod_ext_ext=NA, load=TRUE, file_date_var="lvs_date") {
+lvs_feature_gen <- function(cohort, cohort_key_var_merge,cohort_key_var, lvs_file_mod_arg=lvs_file_mod, 
+  leak_lvs_day_arg=leak_lvs_day, file_date_var="lvs_date") {
     
   print("launching lvs_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # Load the  modified/pre-processed lvs file for the specified data sample -- 
+  # SETUP
+  #-------------------------------------------------------------------------------#
+
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
     
   # load data
-  tryCatch(lvs <- readRDS_merge(lvs_file_mod_arg), warning=function(w)
+  tryCatch(lvs <- readRDS_merge(lvs_file_mod_arg), error=function(e)
     print("no classified lvs file available for the data sample"))
 
-  if (combine==TRUE) {
+  # ensure that date variables exist
+  if (!(paste0(file_date_var, "_1") %in% names(lvs))) lvs[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
 
-    if (load==TRUE) {
-      tryCatch(lvs_ext <- readRDS_merge(lvs_file_mod_ext), warning=function(w)
-        print("no classified lvs file available for the data sample"))
-    } else {
-      lvs_ext <- lvs_file_mod_ext
+  print(sprintf("number of observations: %d", nrow(lvs)))
 
-    }
+  # subset to cohort
+  lvs <- lvs[empi %in% cohort$empi]
+  
+  print(sprintf("number of observations - cohort subset: %d", nrow(lvs)))
+  
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients", nrow(lvs)>0)
+
+  # subset to smaller sample (if test_mode==TRUE)
+  if (test_mode==TRUE) {
     
-    lvs <- rbindlist(list(lvs, lvs_ext), fill=T, use.names=T)
-    lvs[, lvs_id:=1:nrow(lvs)]
- 
-  }
+    lvs <- lvs[1:min(test_row, nrow(lvs))]
 
-  # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
-    store_shorten_file("lvs")
   }
 
   #-------------------------------------------------------------------------------#
-  # merge vital signs file with cohort (cohort_key_variables) & format dates
-  lvs <- lvs[empi %in% cohort$empi]
+  # MERGING & TIMEFRAMES
+  #-------------------------------------------------------------------------------#
 
-  invisible(parse_date(lvs, c("lvs_date")))
+  # Date Formatting & Merge data file with cohort & Implement leakage control
+  #-------------------------------------------------------------------------------#
+  
+  # date formatting
+  invisible(format_date(list(lvs), c(file_date_var,paste0(file_date_var, "_1"))))
 
-  lvs[, c("lvs_date_1","lvs_date_2"):=.(lvs_date)]
+  # foverlaps merge
+  lvs[, c(paste0(file_date_var, "_1"),paste0(file_date_var, "_2")):=.(get(file_date_var))]
 
   lvs <-foverlaps(lvs, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
-    "lvs_date_1", "lvs_date_2"), nomatch=0)
+    paste0(file_date_var, "_1"), paste0(file_date_var, "_2")), nomatch=0)
 
+  print(sprintf("number of observations - cohort subset within the relevant timeframe(s): %d", nrow(lvs)))
+
+  ## SAMPLE SIZE CHECK #2
+  assert("observations - cohort subset within the relevant timeframe(s)", nrow(lvs)>0)
+
+  # time difference calculation (event date vs. t0 date)
   lvs[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
   if (!is.na(leak_lvs_day_arg)) {
-    lvs <- lvs[!(t0_date-lvs_date_1<=leak_lvs_day_arg)]
+    
+    lvs <- lvs[!(t0_date-get(paste0(file_date_var, "_1"))<=leak_lvs_day_arg)]
+
   }
   
+  # split data into feature timeframes
   #-------------------------------------------------------------------------------#
-  # sub setting & dividing into smaller DT based on timeframe - 
-  # return as list (...timeframe_comb)
-  invisible(timeframe_split(list("lvs"), "lvs_date"))
+  return_mult[lvs_timeframe_comb, time_min, time_max] <- timeframe_split(list("lvs"), file_date_var)[[1]]
+  name_ext_extended_tmp                               <- gsub("timeframe_comb", "", names(lvs_timeframe_comb))
+  name_ext_tmp                                        <- name_ext_extended_tmp[2:length(name_ext_extended_tmp)]
 
-  name_ext_extended <- name_ext_extended[sapply(lvs_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
-  lvs_timeframe_comb <- lvs_timeframe_comb[sapply(lvs_timeframe_comb, nrow)!=0]
-
-  time_min <- min(do.call("c", lapply(lvs_timeframe_comb, function(x) as.Date(min(x[, 
-    lvs_date]), "%Y-%m-%d"))))
-  time_max <- max(do.call("c", lapply(lvs_timeframe_comb, function(x) as.Date(max(x[, 
-    lvs_date]), "%Y-%m-%d"))))
-
+  ## SAMPLE SIZE CHECK #3
+  assert("observations for cohort patients within relevant timeframes", 
+    all(sapply(lvs_timeframe_comb, function(x) nrow(x)>0)))
 
   #-------------------------------------------------------------------------------#
-  # reshaping & generating features - mean, sd, max, min of numeric lvs  impose 
-  # feature  categorization ("lvs_value_max/min.."..."_short/_long")
+  # FEATURE GENERATION - STATIC
+  #-------------------------------------------------------------------------------#
+
+  # [1] Basic features 
+  #-------------------------------------------------------------------------------#
+  print("feature generation - lvs_lvs.value_lvs.max/min/mean/sd")
+  
   lvs_timeframe_comb_value <- lapply(lvs_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
-    paste0("..", lvs_cat),list(min, max, mean, sd), value.var="lvs_value"))
+    dcast.data.table_check(data=x, 
+      formula=as.formula("outcome_id + empi + t0_date  ~ paste0('..', lvs_cat)"), 
+      value.var="lvs_value", mode="numeric"))
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("lvs_value", 
-    names(DT), value=T), paste0(gsub("_value_", "_lvs.value_lvs.", gsub("_\\.\\.", "\\.\\.", 
-    grep("lvs_value", names(DT), value=T))), name_ext)), DT=lvs_timeframe_comb_value, 
-    name_ext_extended))
+  inv_mapply(function(DT, name_ext_tmp) setnames_check(DT, old=grep("lvs_value", 
+    names(DT), value=T), new=paste0(gsub("_value_", "_lvs.value_lvs.", gsub("_\\.\\.", "\\.\\.", 
+    grep("lvs_value", names(DT), value=T))), name_ext_tmp)), DT=lvs_timeframe_comb_value, 
+    name_ext_extended_tmp)
+
+  # [2] 'Day to last' features 
+  #-------------------------------------------------------------------------------#
+  print("feature generation - day-to-last")
 
   lvs_timeframe_comb_time <- lapply(lvs_timeframe_comb, function(x)
-    dcast.data.table(x, outcome_id + empi + t0_date  ~ 
-    paste0("..", lvs_cat),fun.aggregate=list(length, function(x) min(x, na.rm=T)), 
-    value.var = "time_diff"))
+    dcast.data.table_check(data=x, formula=as.formula("outcome_id + empi + t0_date  ~ paste0('..', lvs_cat)"), 
+    value.var = "time_diff", mode="basic"))
 
-  lvs_timeframe_comb_time <- feature_var_format(lvs_timeframe_comb_time)
-  invisible(lapply(lvs_timeframe_comb_time, function(x) x[, c(setdiff(setdiff(names(x), 
-    grep("days_to_last",names(x), value=T )), cohort_key_var_merge)):=NULL]))
+  lvs_timeframe_comb_time <- feature_var_format(lvs_timeframe_comb_time, drop=TRUE)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("days_to_last", 
-    names(DT), value=T), paste0("lvs_lvs.value_lvs.mean_temp", grep("days_to_last", 
-    names(DT), value=T), name_ext)), DT=lvs_timeframe_comb_time, 
-    name_ext_extended))
+  inv_mapply(function(DT, name_ext_tmp) setnames_check(DT, old=grep("day_to_last", 
+    names(DT), value=T), new=paste0("lvs_lvs.value_lvs.mean_temp", grep("day_to_last", 
+    names(DT), value=T), name_ext_tmp)), DT=lvs_timeframe_comb_time, 
+    name_ext_extended_tmp)
 
   #-------------------------------------------------------------------------------#
-  # merge lvs feature files
-  lvs_feature_list <- list("lvs_timeframe_comb_time", "lvs_timeframe_comb_value")
-
-  timeframe_combine(lvs_feature_list)
-
-  lvs <- Reduce(mymerge, mget(unlist(lvs_feature_list)))
-
-
+  # FEATURE MERGING
   #-------------------------------------------------------------------------------#
-  # generate time.diff features - difference in means between each timeframe &
-  # between shortest and longest timeframe & 
-  # impose feature hierarchy ("lvs_value_mean.diff.."..."_diff")
-  lvs_list <- c("bps", "bpd", "bp_difference", "pulse","rr",
-    "temperature", "weight", "height")
   
-  if (length(name_ext)>1) {
-    mapply(function(name_ext_1, name_ext_2) lvs[, paste0("lvs_lvs.value_lvs.mean.diff..", lvs_list, 
-      name_ext_1, name_ext_2, "_diff"):=lapply(lvs_list, function(x) if (length(grep(paste0("mean..", x, name_ext_1), 
-      names(lvs), value=T))>0 & length(grep(paste0("mean..", x, name_ext_2), 
-      names(lvs), value=T))>0) {get(grep(paste0("mean..", x, name_ext_1), 
-      names(lvs_timeframe_comb_value), value=T)) - get(grep(paste0("mean..",x, name_ext_2), 
-      names(lvs_timeframe_comb_value), value=T))})], name_ext_1=name_ext[1:(length(name_ext)-1)],
-      name_ext_2=name_ext[2:length(name_ext)])
+  print("feature merging")
+
+  lvs_feature_list <- list("lvs_timeframe_comb_time", "lvs_timeframe_comb_value")
+  lvs_feature_list <- lvs_feature_list[which(lvs_feature_list %in% ls())]
+
+  # combine features across feature timeframes
+  lvs_list_tmp <- timeframe_combine(mget(unlist(lvs_feature_list)), lvs_feature_list)
+
+  # combine features across feature types
+  lvs <- Reduce(mymerge, lvs_list_tmp)
+
+  #-------------------------------------------------------------------------------#
+  # FEATURE GENERATION - DIFFERENCE ACROSS TIMEFRAMES
+  #-------------------------------------------------------------------------------#
+  
+  if (length(name_ext_tmp)>1) {
+  
+    print("feature generation - lvs_lvs.value_lvs.mean.diff")
+
+    lvs_list <- c("bps", "bpd", "bp_difference", "pulse", "rr",
+      "temperature", "weight", "height")
+
+    lvs <- diff_feature_creation(dt=lvs,dt_feature=lvs_list_tmp[[2]],lvs_list, 
+      "lvs","lvs.value", name_ext_tmp=name_ext_tmp)
+
   }
 
-  lvs[, paste0("lvs_lvs.value_lvs.mean.diff..", lvs_list, "_max", 
-    "_diff"):=lapply(lvs_list, function(x) if (length(grep(paste0("mean..", x, name_ext[1]), 
-    names(lvs), value=T))>0 & length(grep(paste0("mean..", x, name_ext[length(name_ext)]), 
-    names(lvs), value=T))>0) {get(grep(paste0("mean..", x, name_ext[1]), 
-    names(lvs_timeframe_comb_value), value=T)) - get(grep(paste0("mean..",x, name_ext[length(name_ext)]), 
-    names(lvs_timeframe_comb_value), value=T))})]
-  
   #-------------------------------------------------------------------------------#
-  # merge with cohort file - empty records -> NA & round to two decimals
+  # MERGE FEATURES WITH COHORT & FORMAT VARIABLES
+  #-------------------------------------------------------------------------------#
+
+  print("cohort merging & feature formatting")
+
+  # merge
   lvs <- lvs[cohort, mget(names(lvs)), on=c("outcome_id", "empi", "t0_date")]
-  
-  non_days_to_last_var <- setdiff(names(lvs),grep("days_to_last", names(lvs),value=T))
-  set_na_zero(lvs, replace=NA, subset_col=non_days_to_last_var)
+  suppressWarnings(lvs[, grep("lvs_id$", names(lvs), value=T):=NULL])
 
-  days_to_last_var <-grep("days_to_last", names(lvs),value=T)
-  set_na_zero(lvs, subset_col=days_to_last_var, NA)
+  # format variables
+  lvs <- feature_type_format(dt=lvs, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern="...", int_feature_pattern=NA, factor_feature_pattern=NA)
 
-  lvs[, grep("lvs_lvs.value", names(lvs), value=T):=lapply(.SD, function(x) 
-    round(x, digits=2)), .SDcols=grep("lvs_lvs.value", names(lvs))]
-  setnames(lvs, gsub("mean_temp", "mean", names(lvs)))
-  
-  #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer 
-  lvs_numeric <- lvs[, mget(setdiff(names(lvs), c("outcome_id", "t0_date", "empi")))]
-  lvs_numeric[, names(lvs_numeric):=lapply(.SD, function(x) as.numeric(x))]
+  # rename variables
+  setnames_check(lvs, new=gsub("mean_temp", "mean", names(lvs)))
 
-  lvs <- cbind(lvs[, mget(c("outcome_id", "t0_date", "empi"))], lvs_numeric)
-
+  # add in additional var / drop unnecessary variables
   lvs[, ':='(lvs_time_min=time_min, lvs_time_max=time_max)]
   
-  if (length(grep("lvs_id$", names(lvs), value=T))>0) lvs[, grep("lvs_id$", names(lvs), value=T):=NULL]
-
-  ## deal with date variables
-  feature_var_format_day_to_last(lvs)
-
+  
   #-------------------------------------------------------------------------------#
-  # return lvs & delete key files 
-  rm(lvs_numeric)
+  # CLEAR MEMORY & RETURN FEATURE SET
+  #-------------------------------------------------------------------------------#
   rm(lvs_timeframe_comb)
- 
-  return (lvs)
+  rm(list=unlist(lvs_feature_list))
+
+  return(lvs)
 
 }
 

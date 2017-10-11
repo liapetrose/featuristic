@@ -5,7 +5,8 @@
 \title{Generate ED-related features (ed_admin data).}
 \usage{
 ed_feature_gen(cohort, cohort_key_var_merge, cohort_key_var,
-  order_file_date_var = "order_enter_date", enc_file_date_var = "adm_date")
+  order_file_date_var = "order_enter_date", enc_file_date_var = "adm_date",
+  lead_ed_day_arg = leak_ed_day)
 }
 \description{
 \

@@ -7,25 +7,24 @@
 #' @export
 #' @param cohort_path 
 #' @param control_path 
-#' @param data_path    
+#' @param data_def_path    
 #' @param feature_path  
 #' @param feature_set_id     
 #' @param feature_set_prefix 
 #' @return
 #' @examples
 
-feature_compilation <- function(cohort_path, control_path, data_path, feature_path, 
-	feature_set_id, feature_set_prefix) {
+feature_compilation <- function(cohort_path, control_path, 
+	data_def_path, feature_path, feature_set_id, feature_set_prefix) {
 
 	
 	#----------------------------------------------------------------------------#
 	#                		             SETUP                                   #
 	#----------------------------------------------------------------------------#
-	current_date <- as.character(format(Sys.time(), "%d_%m_%Y")) 
-	
+
 	# source the control / data scripts
-	print(data_path)
-	source(data_path)
+	print(data_def_path)
+	source(data_def_path)
 	
 	print(control_path)
 	source(control_path)
@@ -52,8 +51,8 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
     if (nrow(pred_set)!=nrow(cohort)) {
     
     	## in case subsetting post assembly
-		print(sprintf("subsetting prediction set ---- number of observations in pred_set: %d vs. number of observations 
-			in cohort: %d", nrow(pred_set), nrow(cohort)))
+		print(sprintf(paste0("subsetting prediction set ---- number of observations in pred_set: ", 
+			"%d vs. number of observations in cohort: %d"), nrow(pred_set), nrow(cohort)))
 
     	pred_set <- pred_set[outcome_id %in% cohort$outcome_id]
 
@@ -102,6 +101,12 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	col_omit_select  <- names(pred_set[, col_omit_select , with=F])
 	col_omit_select  <- setdiff(col_omit_select , union(cohort_key_var, names(cohort_extra_col)))
 
+	# manually handle lab vars (aggregated categories > by definition deselected)
+	if ("lab_lab.non.numeric" %in% var_list) col_omit_select <- setdiff(col_omit_select, 
+		grep("lab_lab.non.numeric", col_omit_select, value=T))
+	if ("lab.dfci_dfci.lab.non.numeric" %in% var_list) col_omit_select <- setdiff(col_omit_select, 
+		grep("lab.dfci_dfci.lab.non.numeric", col_omit_select, value=T))
+	
 	print(sprintf("columns that are deselected (%d)", length(unique(col_omit_select))))
 	deselect_col <- length(unique(col_omit_select))
 
@@ -135,7 +140,7 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 			num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
 				names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-				grep("_days_to_last", names(pred_set),value=T)))
+				grep("_day_to_last", names(pred_set),value=T)))
 
 		}
 
@@ -278,10 +283,12 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 	write.csv(as.data.table(names(pred_set)), file=paste0(output_folder, 
 		"pred_set_var_name_raw_", feature_set_name, ".csv"),row.names=F)
 
-	write.csv(unique(data.table(var_name=c(col_omit_missing_name, "x"), perc=c(col_omit_missing, "_")))[order(-perc)],
-	 file=paste0(output_folder, "pred_set_col_omit_missing_", feature_set_name, ".csv"),row.names=F)
-	write.csv(unique(data.table(var_name=c(col_omit_zero_name,"x"), perc=c(col_omit_zero, "_")))[order(-perc)], 
-		file=paste0(output_folder, "pred_set_col_omit_zero_", feature_set_name, ".csv"),row.names=F)
+	write.csv(unique(data.table(var_name=c(col_omit_missing_name, "x"), perc=c(col_omit_missing, 
+		"_")))[order(-perc)],file=paste0(output_folder, "pred_set_col_omit_missing_", 
+		feature_set_name, ".csv"),row.names=F)
+	write.csv(unique(data.table(var_name=c(col_omit_zero_name,"x"), 
+		perc=c(col_omit_zero, "_")))[order(-perc)], file=paste0(output_folder, 
+		"pred_set_col_omit_zero_", feature_set_name, ".csv"),row.names=F)
 	write.csv(as.data.table(c(col_omit_select, "x")), file=paste0(output_folder, 
 		"pred_set_col_omit_select_", feature_set_name, ".csv"),row.names=F)
 
@@ -345,7 +352,6 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
     # rename
     setnames(pred_set, var_name_final)
 
- 
     # add 'var' to identify features
 	setnames(pred_set, setdiff(names(pred_set), c(cohort_key_var, names(cohort_extra_col))),
 	 paste0("var_", setdiff(names(pred_set), c(cohort_key_var, names(cohort_extra_col)))))
@@ -409,9 +415,11 @@ feature_compilation <- function(cohort_path, control_path, data_path, feature_pa
 
 
 	# ----------------------------------------------------------------------------#
-	#                          Code V - STATS & OUTPUT                           #
+	#                              STATS & OUTPUT                                 #
 	# ----------------------------------------------------------------------------#
+
 	feature_overview()
+
 }
 
 #----------------------------------------------------------------------------#

@@ -5,7 +5,7 @@
 \title{Generate procedure-related features (prc data).}
 \usage{
 prc_feature_gen(cohort, cohort_key_var_merge, cohort_key_var,
-  file_date_var = "prc_date")
+  file_date_var = "prc_date", leak_prc_day_arg = leak_prc_day)
 }
 \arguments{
 \item{file_date_var}{}

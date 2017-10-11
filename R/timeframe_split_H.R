@@ -12,7 +12,7 @@
 
 timeframe_split <- function(DT_list, colname) {
 
-  lapply(DT_list, function(x) {
+  split_data <- lapply(DT_list, function(x) {
     timeframe_comb_list <- list()
     timeframe_comb_list[[1]] <- get(x,sys.frame(
         sys.parent(n=3)))[get(colname) >= get(paste0("t0_date_beg", 
@@ -29,11 +29,24 @@ timeframe_split <- function(DT_list, colname) {
       }
     }
 
+    # format
     names(timeframe_comb_list) <- c("timeframe_comb_max",paste0("timeframe_comb", name_ext))
 
-    assign(paste0(x, "_timeframe_comb"),timeframe_comb_list, 
-      envir = sys.frame(sys.parent(n=3)))
+    # subset
+    timeframe_comb_list <- timeframe_comb_list[sapply(timeframe_comb_list, nrow)!=0]
+
+    # generate time min/max
+    time_min <- min(do.call("c", lapply(timeframe_comb_list, function(x) as.Date(min(x[, 
+      get(colname)]), "%Y-%m-%d"))))
+    time_max <- max(do.call("c", lapply(timeframe_comb_list, function(x) as.Date(max(x[, 
+      get(colname)]), "%Y-%m-%d"))))
+
+    # combine 
+    return(list(timeframe_comb_list,time_min, time_max))
+
   })
+
+  return(split_data)
 }
 
 #----------------------------------------------------------------------------#

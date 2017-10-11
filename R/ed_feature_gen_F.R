@@ -8,277 +8,224 @@
 #' @param order_file_date_var
 #' @param enc_file_date_var
 #' @param cohort
+#' @param cohort_key_var
 #' @param cohort_key_var_merge
+#' @param lead_ed_day_arg
 #' @return
 #' @examples
 
 ed_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, 
-  order_file_date_var="order_enter_date", enc_file_date_var="adm_date") {
+  order_file_date_var="order_enter_date", enc_file_date_var="adm_date",
+  lead_ed_day_arg=leak_ed_day) {
   
   print("launching ed_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # Load the  modified/pre-processed ed file for the specified data sample -- 
+  # SETUP
+  #-------------------------------------------------------------------------------#
+
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
     
-  # load the data
-  tryCatch(ed <- readRDS_merge(ed_enc_file_mod,nested=TRUE), warning=function(w)
+  # load data
+  tryCatch(ed <- readRDS_merge(ed_enc_file_mod), error=function(e)
     print("no classified ed file available for the data sample"))
 
-  ed_enc <- ed$ed_enc
+  # split into encounter/order data
+  ed_enc   <- ed$ed_enc
   ed_order <- ed$ed_order
 
-  # omit missing empi
-  ed_enc <- ed_enc[!is.na(empi)]
+  print(sprintf("number of observations (ed_enc): %d", nrow(ed_enc)))
+  print(sprintf("number of observations (ed_order): %d", nrow(ed_order)))
+
+  # ensure that date variables exist
+  if (!(paste0(enc_file_date_var, "_1") %in% names(ed_enc))) ed_enc[, 
+    c(paste0(enc_file_date_var, "_1")):=get(enc_file_date_var)]
+  if (!(paste0(order_file_date_var, "_1") %in% names(ed_order))) ed_order[, 
+    c(paste0(order_file_date_var, "_1")):=get(order_file_date_var)]
+
+  # subset to cohort
+  ed_enc   <- ed_enc[!is.na(empi)]
+  ed_enc   <- ed_enc[empi %in% cohort$empi]
   ed_order <- ed_order[!is.na(empi)]
- 
-  # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
-    store_shorten_file("ed_enc")
-    store_shorten_file("ed_order")
-
-  }
-
-  #-------------------------------------------------------------------------------#
-  # merge ed file with cohort (cohort_key_variables) & format dates
-
-  ed_enc <- ed_enc[empi %in% cohort$empi]
   ed_order <- ed_order[empi %in% cohort$empi]
 
-  invisible(parse_date(ed_enc, c("adm_date")))
-  invisible(parse_date(ed_order, c("order_enter_date")))
+  print(sprintf("number of observations - cohort subset (ed_enc): %d", nrow(ed_enc)))
+  print(sprintf("number of observations - cohort subset (ed_order): %d", nrow(ed_order)))
 
-  ed_enc[, c("adm_date_1","adm_date_2"):=.(adm_date)]
-  ed_order[, c("order_enter_date_1","order_enter_date_2"):=.(order_enter_date)]
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients (ed_enc)", nrow(ed_enc)>0)
+  assert("observations for cohort patients (ed_order)", nrow(ed_order)>0)
 
-  ed_enc <-foverlaps(ed_enc, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
-    "adm_date_1", "adm_date_2"), nomatch=0)
-
-  ed_order <- foverlaps(ed_order[!is.na(order_enter_date)], cohort[, mget(cohort_key_var_merge)], 
-    by.x=c("empi",
-    "order_enter_date_1", "order_enter_date_2"), nomatch=0)
-
- ed_enc[, time_diff:=as.numeric(difftime(t0_date, get(enc_file_date_var), 
-    units="days"))]
- ed_order[, time_diff:=as.numeric(difftime(t0_date, get(order_file_date_var), 
-    units="days"))]
- 
-
-  # implement leakage control 
-  if (!is.na(leak_ed_day)) {
-    ed_enc <- ed_enc[!(t0_date-adm_date_1<=leak_ed_day)]
-    ed_order <- ed_order[!(t0_date-order_enter_date_1<=leak_ed_day)]
+  # subset to smaller sample (if test_mode==TRUE)
+  if (test_mode==TRUE) {
+    
+    ed_enc   <- ed_enc[1:min(test_row, nrow(ed_enc))]
+    ed_order <- ed_order[1:min(test_row, nrow(ed_order))]
 
   }
 
   #-------------------------------------------------------------------------------#
-  # sub setting & dividing into smaller DT based on timeframe - 
-  # return as list (...timeframe_comb)
+  # ADDITIONAL SUBSETTING / FORMATTING
+  #-------------------------------------------------------------------------------#
 
-  invisible(timeframe_split(list("ed_enc"), "adm_date"))
-  invisible(timeframe_split(list("ed_order"), "order_enter_date"))
+  # subset to encounters/orders with a non-missing date
+  ed_enc   <- ed_enc[!is.na(get(enc_file_date_var))]
+  ed_order <- ed_order[!is.na(get(order_file_date_var))] 
 
-  name_ext_extended <- name_ext_extended[sapply(ed_enc_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
+  #-------------------------------------------------------------------------------#
+  # MERGING & TIMEFRAMES
+  #-------------------------------------------------------------------------------#
+
+  # Date Formatting & Merge data file with cohort & Implement leakage control
+  #-------------------------------------------------------------------------------#
  
-  ed_enc_timeframe_comb <- ed_enc_timeframe_comb[sapply(ed_enc_timeframe_comb, nrow)!=0]
-  ed_order_timeframe_comb <- ed_order_timeframe_comb[sapply(ed_order_timeframe_comb, nrow)!=0]
+  # date formatting
+  invisible(format_date(list(ed_enc), c(enc_file_date_var,paste0(enc_file_date_var, "_1"))))
+  invisible(format_date(list(ed_order), c(order_file_date_var,paste0(order_file_date_var, "_1"))))
 
-  time_min_ed_enc <- min(do.call("c", lapply(ed_enc_timeframe_comb, function(x) as.Date(min(x[, 
-    adm_date]), "%Y-%m-%d"))))
-  time_max_ed_enc <- max(do.call("c", lapply(ed_enc_timeframe_comb, function(x) as.Date(max(x[, 
-    adm_date]), "%Y-%m-%d"))))
+  # foverlaps merge
+  ed_enc[, c(paste0(enc_file_date_var, "_1"),paste0(enc_file_date_var, "_2")):=.(get(enc_file_date_var))]
+  ed_order[, c(paste0(order_file_date_var, "_1"),paste0(order_file_date_var, "_2")):=.(get(order_file_date_var))]
 
-  time_min_ed_order <- min(do.call("c", lapply(ed_order_timeframe_comb, function(x) as.Date(min(x[, 
-   order_enter_date]), "%Y-%m-%d"))))
-  time_max_ed_order <- max(do.call("c", lapply(ed_order_timeframe_comb, function(x) as.Date(max(x[, 
-   order_enter_date]), "%Y-%m-%d"))))
+  ed_enc <-  foverlaps(ed_enc, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+    paste0(enc_file_date_var, "_1"), paste0(enc_file_date_var, "_2")), nomatch=0)
+  ed_order <-  foverlaps(ed_order, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+    paste0(order_file_date_var, "_1"), paste0(order_file_date_var, "_2")), nomatch=0)
+
+  print(sprintf("number of observations - cohort subset within the relevant timeframe(s) (ed_enc): %d", nrow(ed_enc)))
+  print(sprintf("number of observations - cohort subset within the relevant timeframe(s) (ed_order): %d", nrow(ed_order)))
+
+  ## SAMPLE SIZE CHECK #2
+  assert("observations - cohort subset within the relevant timeframe(s) (ed_enc)", 
+    nrow(ed_enc)>0)
+  assert("observations - cohort subset within the relevant timeframe(s) (ed_order)", 
+    nrow(ed_order)>0)
+
+  # time difference calculation (event date vs. t0 date)
+  ed_enc[, time_diff:=as.numeric(difftime(t0_date, get(enc_file_date_var), 
+    units="days"))]
+  ed_order[, time_diff:=as.numeric(difftime(t0_date, get(order_file_date_var), 
+    units="days"))]
+
+  # implement leakage control 
+  if (!is.na(lead_ed_day_arg)) {
+    
+    ed_enc <- ed_enc[!(t0_date-get(paste0(enc_file_date_var, "_1"))<=lead_ed_day_arg)]
+    ed_order <- ed_order[!(t0_date-get(paste0(order_file_date_var, "_1"))<=lead_ed_day_arg)]
+
+  }
+
+  # split data into feature timeframes
+  #-------------------------------------------------------------------------------#
+  return_mult[ed_enc_timeframe_comb, time_min_ed_enc, time_max_ed_enc]       <- timeframe_split(list("ed_enc"), enc_file_date_var)[[1]]
+  return_mult[ed_order_timeframe_comb, time_min_ed_order, time_max_ed_order] <- timeframe_split(list("ed_order"), order_file_date_var)[[1]]
+
+  name_ext_extended_tmp                                                      <- gsub("timeframe_comb", "", names(ed_enc_timeframe_comb))
+  name_ext_tmp                                                               <- name_ext_extended_tmp[2:length(name_ext_extended_tmp)]
+
+  ## SAMPLE SIZE CHECK #3
+  assert("observations for cohort patients within relevant timeframes (ed_enc)", 
+    all(sapply(ed_enc_timeframe_comb, function(x) nrow(x)>0)))
+  assert("observations for cohort patients within relevant timeframes (ed_order)", 
+    all(sapply(ed_order_timeframe_comb, function(x) nrow(x)>0)))
+
+  time_min <- min(time_min_ed_enc, time_min_ed_order)
+  time_max <- max(time_max_ed_enc, time_max_ed_order)
 
 
   #-------------------------------------------------------------------------------#
-  # reshaping - create ed cc count vars 
+  # FEATURE GENERATION
+  #-------------------------------------------------------------------------------#
 
+  # [1] ED chief complaint features 
+  #-------------------------------------------------------------------------------#
+  print("feature generation - ed_ed.chief.complaint.count_ed.zc")
+
+  # [*] melt
   ed_cc_timeframe_comb <- lapply(ed_enc_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "t0_date","time_diff"),
+    melt_check(x, id.vars =c("outcome_id", "empi", "t0_date","time_diff"),
     measure=patterns("^ed_cc_[0-9]"), variable.name="ed_cc_name", 
     value.name="ed_cc"))
 
   ed_cc_timeframe_comb <- lapply(ed_cc_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("ed_ed.chief.complaint.count_ed.zc..", 
-    ed_cc1), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-    subset=.(!is.na(ed_cc1))))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('ed_ed.chief.complaint.count_ed.zc..', ed_cc)"), 
+    value.var = "time_diff",subset=non_missing("ed_cc"),mode="basic"))
 
   ed_cc_timeframe_comb <- feature_var_format(ed_cc_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("ed_ed.chief.complaint.count", 
-    names(DT), value=T), paste0(grep("ed_ed.chief.complaint.count_ed.zc", names(DT), value=T),name_ext)), 
-    DT=ed_cc_timeframe_comb,  name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, 
+    old=grep("ed_ed.chief.complaint.count", 
+    names(DT), value=T), new=paste0(grep("ed_ed.chief.complaint.count_ed.zc", 
+    names(DT), value=T),name_ext_tmp)), DT=ed_cc_timeframe_comb,  name_ext_extended_tmp)
 
+  # [2] ED medication order features 
   #-------------------------------------------------------------------------------#
-  # reshaping - create ed med order count vars  
+  print("feature generation - ed_ed.med.order.count_ed.snomed")
 
+  # [*] melt
   ed_med_order_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "time_diff"),
+    melt_check(x, id.vars =c("outcome_id", "empi", "t0_date", "time_diff"),
     measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
     value.name="snomed_destin"))
 
   ed_med_order_timeframe_comb <- lapply(ed_med_order_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-    subset=.(!snomed_destin1=="" & !is.na(snomed_destin1))))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('med_', snomed_destin)"), 
+    value.var = "time_diff", mode="basic",
+    subset=non_missing("snomed_destin")))
 
   ed_med_order_timeframe_comb <- feature_var_format(ed_med_order_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("med_", 
-    names(DT), value=T), paste0("ed_ed.med.order.count_ed.snomed", gsub("(.*?)med_(.*)", "\\1..med_\\2",
-    grep("med_", names(DT), value=T)),name_ext)), DT = ed_med_order_timeframe_comb, 
-    name_ext_extended))
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("med_", 
+    names(DT), value=T), new=paste0("ed_ed.med.order.count_ed.snomed", 
+    gsub("(.*?)med_(.*)", "\\1..med_\\2",grep("med_", names(DT), value=T)),name_ext_tmp)), 
+    DT = ed_med_order_timeframe_comb, name_ext_extended_tmp)
 
   #-------------------------------------------------------------------------------#
-  # reshaping - create ed med order count vars
+  # FEATURE MERGING
+  #-------------------------------------------------------------------------------#
 
-  ed_med_order_excl_anti_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "snomed_anti_cat", "time_diff"),
-    measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
-    value.name="snomed_destin"))
+  print("feature merging")
 
-  ed_med_order_excl_anti_timeframe_comb <- lapply(ed_med_order_excl_anti_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-    subset=.(!snomed_destin1=="" & !is.na(snomed_destin1) & is.na(snomed_anti_cat))))
+  ed_feature_list <- list("ed_cc_timeframe_comb", "ed_med_order_timeframe_comb")
+  ed_feature_list <- ed_feature_list[which(ed_feature_list %in% ls())]
 
-  ed_med_order_excl_anti_timeframe_comb <- feature_var_format(ed_med_order_excl_anti_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("med_", 
-    names(DT), value=T), paste0("ed_ed.med.order.count_ed.snomed.excl.anti", gsub("(.*?)med_(.*)", 
-    "\\1..med_\\2",grep("med_", names(DT), value=T)),name_ext)), 
-    DT = ed_med_order_excl_anti_timeframe_comb, name_ext_extended))
+  # combine features across feature timeframes
+  ed_list_tmp <- timeframe_combine(mget(unlist(ed_feature_list)), ed_feature_list)
+
+  # combine features across feature types
+  ed <- Reduce(mymerge, ed_list_tmp)
 
   #-------------------------------------------------------------------------------#
-  # reshaping - create ed med order count vars  
-
-  ed_med_order_excl_chemo_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x)
-    melt(x, id.vars =c("outcome_id", "empi", "t0_date", "snomed_chemo_cat", "time_diff"),
-    measure=patterns("^snomed_destin"), variable.name="snomed_destin_name", 
-    value.name="snomed_destin"))
-
-  ed_med_order_excl_chemo_timeframe_comb <- lapply(ed_med_order_excl_chemo_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_", snomed_destin1), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-    subset=.(!snomed_destin1=="" & !is.na(snomed_destin1) & is.na(snomed_chemo_cat))))
-
-  ed_med_order_excl_chemo_timeframe_comb <- feature_var_format(ed_med_order_excl_chemo_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("med_", 
-    names(DT), value=T), paste0("ed_ed.med.order.count_ed.snomed.excl.chemo", 
-    gsub("(.*?)med_(.*)", "\\1..med_\\2",grep("med_", names(DT), value=T)),name_ext)), 
-    DT = ed_med_order_excl_chemo_timeframe_comb, name_ext_extended))
-
+  # MERGE FEATURES WITH COHORT & FORMAT VARIABLES
   #-------------------------------------------------------------------------------#
-  # reshaping - create ed med order count vars 
 
-  ed_med_order_anti_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x) 
-    if(nrow(x[!snomed_anti_cat=="" & !is.na(snomed_anti_cat)])>0) {dcast.data.table(x, outcome_id + empi + t0_date ~  
-    paste0("med_anti_", snomed_anti_cat),
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-    subset=.(!snomed_anti_cat=="" & !is.na(snomed_anti_cat)))} else {
-      data.table(empi = character(0), outcome_id = numeric(0), t0_date=numeric(0))})
+  print("cohort merging & feature formatting")
 
-  ed_med_order_anti_timeframe_comb <- feature_var_format(ed_med_order_anti_timeframe_comb)
-
-  invisible(mapply(function(DT,name_ext) if (length(grep("med_", 
-    names(DT), value=T))>0) {setnames(DT, grep("med_", 
-    names(DT), value=T), paste0("ed_ed.med.order.count_ed.snomed.anti", gsub("(.*?)med_anti_(.*)", 
-    "\\1..med_anti_\\2",grep("med_", names(DT), value=T)),name_ext))}, 
-    DT = ed_med_order_anti_timeframe_comb, name_ext_extended))
-
-  ed_med_order_anti_timeframe_comb <- lapply(ed_med_order_anti_timeframe_comb, function(x) 
-    x[, ed_ed.med.order.count_ed.snomed.anti..any:=rowSums(.SD), .SDcols=
-    grep("ed_ed.med.order.count_ed.snomed.anti",names(x), value=T)])
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("ed_ed.med.order.count_ed.snomed.anti..any", 
-    names(DT), value=T), paste0(grep("ed_ed.med.order.count_ed.snomed.anti..any", 
-    names(DT), value=T),name_ext)), DT = ed_med_order_anti_timeframe_comb, name_ext_extended))
-
-
-  #-------------------------------------------------------------------------------#
-  # reshaping - create ed med order count vars 
-
-  if (Reduce(`&`, sapply(c(1:length(name_ext)), function(x) 
-    nrow(ed_order_timeframe_comb[[x]][!is.na(snomed_chemo_cat)])>0))) {
-     # XXX NOTE: ED Med order count vars == sum of ed cc dummies over timeperiod in question
-     ed_med_order_chemo_timeframe_comb <- lapply(ed_order_timeframe_comb, function(x) 
-       dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("med_chemo_", snomed_chemo_cat) ,
-       fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff",
-       subset=.(!snomed_chemo_cat=="" & !is.na(snomed_chemo_cat))))
-
-  ed_med_order_chemo_timeframe_comb <- feature_var_format(ed_med_order_chemo_timeframe_comb)
-
-     invisible(mapply(function(DT,name_ext) setnames(DT, grep("med_", 
-       names(DT), value=T), paste0("ed_ed.med.order.count_ed.snomed.chemo", 
-       gsub("(.*?)med_chemo_(.*)", "\\1..med_chemo_\\2",
-       grep("med_", names(DT), value=T)),name_ext)), DT = ed_med_order_chemo_timeframe_comb, 
-       name_ext_extended))
-
-     ed_med_order_chemo_timeframe_comb <- lapply(ed_med_order_chemo_timeframe_comb, function(x) 
-       x[, ed_ed.med.order.count_ed.snomed.chemo..any:=rowSums(.SD), 
-       .SDcols=grep("ed_ed.med.order.count_ed.snomed.chemo",names(x), value=T)])
-
-     invisible(mapply(function(DT,name_ext) setnames(DT, grep("ed_ed.med.order.count_ed.snomed.chemo..any", 
-       names(DT), value=T), paste0(grep("ed_ed.med.order.count_ed.snomed.chemo..any", 
-       names(DT), value=T),name_ext)), DT = ed_med_order_chemo_timeframe_comb, name_ext_extended))
-
-  }
-
-  #-------------------------------------------------------------------------------#
-  # merge dia feature files
-  if (Reduce(`&`, sapply(c(1:length(name_ext)), function(x) 
-    nrow(ed_order_timeframe_comb[[x]][!is.na(snomed_chemo_cat)])>0))) {
-     ed_feature_list <- list("ed_cc_timeframe_comb", "ed_med_order_timeframe_comb", 
-       "ed_med_order_anti_timeframe_comb", "ed_med_order_chemo_timeframe_comb",
-       "ed_med_order_excl_anti_timeframe_comb", "ed_med_order_excl_chemo_timeframe_comb")
-    } else {
-       ed_feature_list <- list("ed_cc_timeframe_comb", "ed_med_order_timeframe_comb", 
-       "ed_med_order_anti_timeframe_comb",
-       "ed_med_order_excl_anti_timeframe_comb", "ed_med_order_excl_chemo_timeframe_comb")
-    }
-
-  timeframe_combine(ed_feature_list)
-
-  ed <- Reduce(mymerge, mget(unlist(ed_feature_list)))
-
-  #-------------------------------------------------------------------------------#
-  # merge with cohort file - empty records -> 0
+  # merge
   ed <- ed[cohort, mget(names(ed)), on=c("outcome_id", "empi", "t0_date")]
+  suppressWarnings(ed[, grep("ed_(enc|order)_id$", names(ed), value=T):=NULL])
+
+  # format variables
+  ed <- feature_type_format(dt=ed, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern=NA, int_feature_pattern="...", factor_feature_pattern=NA)
   
-  non_days_to_last_var <- setdiff(names(ed),grep("days_to_last", names(ed),value=T))
-  set_na_zero(ed, subset_col=non_days_to_last_var)
-
-  days_to_last_var <-grep("days_to_last", names(ed),value=T)
-  set_na_zero(ed, subset_col=days_to_last_var, NA)
+  # add in additional var / drop unnecessary variables
+  ed[, ':='(ed_time_min=time_min, ed_time_max=time_max)]
 
   #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer 
-  ed_integer <- ed[, mget(setdiff(names(ed), c("outcome_id", "t0_date", "empi")))]
-  ed_integer[, names(ed_integer):=lapply(.SD, function(x) as.integer(x))]
-
-  ed <- cbind(ed[, mget(c("outcome_id", "t0_date", "empi"))], ed_integer)
-
-  ed[, ':='(ed_time_min=min(time_min_ed_enc,time_min_ed_order), 
-    ed_time_max=max(time_max_ed_enc, time_max_ed_order))]
-
-  if (length(grep("ed_(enc|order)_id$", names(ed), value=T))>0) ed[, grep("ed_(enc|order)_id$", names(ed), value=T):=NULL]
-
-  feature_var_format_day_to_last(ed)
-
+  # CLEAR MEMORY & RETURN FEATURE SET
   #-------------------------------------------------------------------------------#
-  # return ed & delete key files 
-  rm(ed_integer)
+  rm(ed_enc_timeframe_comb)
+  rm(ed_order_timeframe_comb)
   rm(list=unlist(ed_feature_list))
-  
-  return (ed)
-}
 
+  return(ed)
+
+}
 
 #----------------------------------------------------------------------------#
 

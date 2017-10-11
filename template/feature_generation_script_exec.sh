@@ -1,14 +1,15 @@
-## job submission
+# Job submission  - TEMPLATE (EXECUTE LINE-BY-LINE)
+#----------------------------------------------------------------------------#
 
 
 ## job parameters
 queue=big-multi
-mem_res=10000
+mem_res=100000
 mem_lim=500000
 core_multi=4
 
 # stage specification ('1','2','12')
-stage='2'
+stage='1'
 
 cd  /data/zolab/featuristic/codebase/featuristic/template
 command="--args ${stage}" 

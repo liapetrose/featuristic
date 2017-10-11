@@ -11,7 +11,6 @@
 #' @return
 #' @examples
 
-
 feature_coll <- function(dt, cohort_key_var_list=cohort_key_var, 
   cohort_extra_var_list=names(cohort_extra_col)) {
 
@@ -20,7 +19,8 @@ feature_coll <- function(dt, cohort_key_var_list=cohort_key_var,
 
   temp <- data.table(var_cat=names(dt_temp))
 
-  temp[var_cat %like% "timeframe" | var_cat %like% paste0(name_ext, collapse="|") | var_cat %like% paste0(name_ext_extended, collapse="|"), var_type:="time"]
+  temp[var_cat %like% "timeframe" | var_cat %like% paste0(name_ext, collapse="|") | 
+    var_cat %like% paste0(name_ext_extended, collapse="|"), var_type:="time"]
   temp[var_cat %like% "timeframe_diff" | var_cat %like% "diff$", var_type:="diff"]
   temp[is.na(var_type), var_type:="static"]
 

@@ -5,7 +5,8 @@
 \title{Generate enc-related features (enc data).}
 \usage{
 enc_feature_gen(cohort, cohort_key_var_merge, cohort_key_var,
-  file_date_var = "adm_date")
+  file_date_var = "adm_date", leak_enc_day_arg = leak_enc_day,
+  enc_file_mod_arg = enc_file_mod)
 }
 \description{
 \

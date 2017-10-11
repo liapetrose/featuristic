@@ -6,6 +6,13 @@
 \usage{
 dem_feature_gen(cohort, cohort_key_var_merge, cohort_key_var)
 }
+\arguments{
+\item{cohort}{cohort dt}
+
+\item{cohort_key_var_merge}{list of key identifiers on which to merge (see: feature_initialisation)}
+
+\item{cohort_key_var}{list of key identifiers on which to merge (see: feature_initialisation)}
+}
 \description{
 \
 }

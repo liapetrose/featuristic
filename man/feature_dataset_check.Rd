@@ -5,7 +5,7 @@
 \title{Verify the correct construction of a feature category dataset.}
 \usage{
 feature_dataset_check(feature_dt, feature_dt_name, cohort_dt,
-  cohort_key_var_list, extra_var_list, save_name = TRUE)
+  cohort_key_var_list, save_name = TRUE)
 }
 \arguments{
 \item{feature_dt_name}{}
@@ -13,8 +13,6 @@ feature_dataset_check(feature_dt, feature_dt_name, cohort_dt,
 \item{cohort_dt}{}
 
 \item{cohort_key_var_list}{}
-
-\item{extra_var_list}{}
 
 \item{save_name}{}
 }

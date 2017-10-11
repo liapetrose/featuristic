@@ -10,14 +10,18 @@ print(sprintf("stage: %s", stage))
 # SETUP
 #----------------------------------------------------------------------------#
 
+# Set the working directory
+#---------------------------------------
+wd_path <- "/data/zolab/featuristic/"
+
 # [0-A] Load the package
 #---------------------------------------
 # library(featuristic)
 
 # [0-B] Load the package - locally 
 #---------------------------------------
-package_path <- "/data/zolab/featuristic/codebase/"
-source("/data/zolab/featuristic/codebase/featuristic/package_management/load_package_locally.R")
+package_path <- paste0(wd_path,"codebase/")
+source(paste0(package_path,"featuristic/package_management/load_package_locally.R"))
 
 # [1] Specify the location of the cohort for which to generate features 
 #---------------------------------------
@@ -26,7 +30,7 @@ source("/data/zolab/featuristic/codebase/featuristic/package_management/load_pac
 ###  columns are preserved):
 
 ### "outcome_id" - a unique identifier for each observation
-### "outcome"    - a (binary) outcome variable (e.g. deceased - yes (1) / no (0))
+### "outcome"    - a (binary or continuous) outcome variable (e.g. deceased - yes (1) / no (0))
 ### "empi"       - patient identifier associated with each observation
 ### "t0_date"    - date associated with each observation and based on which 
 ###                features are constructed (~ 't0')
@@ -37,7 +41,7 @@ source("/data/zolab/featuristic/codebase/featuristic/package_management/load_pac
 ### "test_set  " - a binary variable indicating whether a given observation belongs to the
 ###                'testing' (1) / 'training' (0) set
 
-cohort_path           <- "/data/zolab/featuristic/test_project/test_cohort.Rds"
+cohort_path           <- paste0(wd_path,"test_project/test_cohort.Rds")
 
 # [2] Specify the paths to the key control inputs 
 #---------------------------------------
@@ -45,13 +49,14 @@ cohort_path           <- "/data/zolab/featuristic/test_project/test_cohort.Rds"
 ##   template folder
 
 # control.R file   > settings
-control_path         <- "/data/zolab/featuristic/codebase/featuristic/template/control.R"
+control_path         <- paste0(wd_path,"codebase/featuristic/template/control.R")
 
-# data_path.R file > data paths
-data_path            <- "/data/zolab/featuristic/codebase/featuristic/template/data_path.R"
+
+# data_def_path.R file > data paths
+data_def_path        <- paste0(wd_path,"codebase/featuristic/template/data_path.R") 
 
 # feature_selection.csv file > variable selection 
-feature_path         <- "/data/zolab/featuristic/codebase/featuristic/template/feature_selection.csv"
+feature_path         <- paste0(wd_path,"codebase/featuristic/template/feature_selection.csv") 
 
 # [3] Specify the ID and prefix which is to be associated with any outputs 
 #---------------------------------------
@@ -61,7 +66,7 @@ feature_path         <- "/data/zolab/featuristic/codebase/featuristic/template/f
 ## even if working with the same cohort data file
 
 feature_set_prefix   <- "test_cohort_main_model"
-feature_set_id       <- "3" 
+feature_set_id       <- "4" 
 
 
 # EXECUTION
@@ -69,12 +74,12 @@ feature_set_id       <- "3"
 
 # Execute Stage-1 > Construct the Features
 #---------------------------------------
-if ('1' %in% stage) {
+if (stage %in% c('1', '12')) {
 
 	print("starting stage-1 (feature construction)")
 
 	feature_construction(cohort_path=cohort_path, control_path=control_path,
- 		data_path=data_path, feature_path=feature_path,
+ 		data_def_path=data_def_path, feature_path=feature_path,
  		feature_set_id=feature_set_id,
  		feature_set_prefix=feature_set_prefix)
 }
@@ -82,7 +87,7 @@ if ('1' %in% stage) {
 
 # Execute Stage-2 > Assemble the Features
 #---------------------------------------
-if ('2' %in% stage) {
+if (stage %in% c('2', '12')) {
 
 	print("starting stage-2 (feature compilation)")
 

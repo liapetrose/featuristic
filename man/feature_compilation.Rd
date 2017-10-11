@@ -4,7 +4,7 @@
 \alias{feature_compilation}
 \title{Compile features (Stage II).}
 \usage{
-feature_compilation(cohort_path, control_path, data_path, feature_path,
+feature_compilation(cohort_path, control_path, data_def_path, feature_path,
   feature_set_id, feature_set_prefix)
 }
 \arguments{
@@ -12,7 +12,7 @@ feature_compilation(cohort_path, control_path, data_path, feature_path,
 
 \item{control_path}{}
 
-\item{data_path}{}
+\item{data_def_path}{}
 
 \item{feature_path}{}
 

@@ -8,7 +8,15 @@
 #' @return
 #' @examples
 
+
+# NOTE: ALL VARIBALES NEED TO BE DEFINED AS GLOBAL VARIABLES ('<<-')
+
 feature_initialisation <- function() {	
+
+	# ----------------------------------------------- #
+	# date
+	# ----------------------------------------------- #
+	current_date <<- as.character(format(Sys.time(), "%d_%m_%Y")) 
 
 	# ----------------------------------------------- #
 	# feature set name
@@ -20,9 +28,9 @@ feature_initialisation <- function() {
 	# ----------------------------------------------- #
 
 	# load the settings
-	name_ext_name        <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
-	name_ext   	         <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
-	timeframe_duration   <<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
+	name_ext_name        			 <<- rev(c(unlist(lapply(timeframe_list, function(x) x$name))))
+	name_ext   	         			 <<- rev(paste0("_", c(unlist(lapply(timeframe_list, function(x) x$name_abb)))))	
+	timeframe_duration   			 <<- rev(as.integer(c(unlist(lapply(timeframe_list, function(x) x$length)))))
 
 	name_ext_name_extended           <<- c("max", name_ext_name)
 	name_ext_extended                <<- c("_max", name_ext)
@@ -80,10 +88,6 @@ feature_initialisation <- function() {
 			selection_raw <- setdiff(selection_raw, c("lab", "lab_oncdrs"))
 		}
 
-		if ("enc_oncdrs_rpdr" %in% selection_raw)     {
-			selection_raw <- setdiff(selection_raw, c("enc", "enc_oncdrs"))
-		}
-
 		return(selection_raw)	
 
 	} 
@@ -97,7 +101,7 @@ feature_initialisation <- function() {
 
 	# load 
 	# ----------------------------------
-	cohort <- readRDS(cohort_path)	
+	cohort <<- readRDS(cohort_path)	
 	print(sprintf("number of observations in cohort: %d", nrow(cohort)))
 
 	# verify column names
@@ -107,11 +111,11 @@ feature_initialisation <- function() {
 
 	# store key variables
 	# ----------------------------------
-	cohort_key_var <- c("outcome_id", "t0_date", "empi")
+	cohort_key_var <<- c("outcome_id", "t0_date", "empi")
 	
 	# store 'extra' variables (for later merging) 
 	# ----------------------------------------------- #
-	cohort_extra_col <- cohort[, mget(c("outcome_id", setdiff(names(cohort), 
+	cohort_extra_col <<- cohort[, mget(c("outcome_id", setdiff(names(cohort), 
 		cohort_key_var)))]
 	
 	cat(sprintf("extra cohort columns: %s", 
@@ -119,7 +123,7 @@ feature_initialisation <- function() {
 
 	# format  dates & generate timeframe-specific dates 
 	# ----------------------------------------------- #	
-	invisible(parse_date(cohort, c("t0_date")))
+	invisible(format_date(list(cohort), list("t0_date")))
 
 	for (i in name_ext) {
 		cohort[,c(paste0("t0_date_beg",i)):=t0_date-get(paste0("timeframe", i))]
@@ -130,7 +134,7 @@ feature_initialisation <- function() {
 	
 	# store variables to be used to merge
 	# ----------------------------------------------- #
-	cohort_key_var_merge <- c("empi", "outcome_id", "t0_date", 
+	cohort_key_var_merge <<- c("empi", "outcome_id", "t0_date", 
 		grep("t0_date_", names(cohort), value=T))
 	
 	# ----------------------------------------------- #
@@ -164,27 +168,12 @@ feature_initialisation <- function() {
 		if ("lab_oncdrs_rpdr" %in% compile_list)  {
 			feature_selection_raw[filename=="lab.dfci", include:=0]
 		}
-
-		if ("enc_oncdrs_rpdr" %in% compile_list)     {
-			feature_selection_raw[filename=="enc.dfci", include:=0]
-		}
-
+		
 		return(feature_selection_raw)	
 
 	} 
 
-	variable_list <- modify_feature_selection(variable_list)
-
-
-
-	# ----------------------------------------------- #
-	# global assignment
-	# ----------------------------------------------- #
-	cohort               <<- cohort
-	cohort_key_var_merge <<- cohort_key_var_merge
-	cohort_key_var       <<- cohort_key_var
-	cohort_extra_col     <<- cohort_extra_col
-	variable_list        <<- variable_list
+	variable_list <<- modify_feature_selection(variable_list)
 }
 
 #----------------------------------------------------------------------------#

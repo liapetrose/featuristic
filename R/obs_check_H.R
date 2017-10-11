@@ -18,7 +18,7 @@ obs_check <- function(dt, cohort_key_var_list=cohort_key_var,
   # define regx patterns for eacn of the timeframes
   timepattern_1 <- paste0(paste0(name_ext_extended, "$"), collapse="|")
   timepattern_2 <- paste0(paste0(name_ext_name_extended, "$"), collapse="|")
-  timepattern_3 <- "_days_to_last_.*|timeframe.*$"
+  timepattern_3 <- "_day_to_last_.*|timeframe.*$"
   timepattern   <- paste(timepattern_1, timepattern_2, timepattern_3, sep="|")
 
   # define regx patterns for eacn of the difference timeframes

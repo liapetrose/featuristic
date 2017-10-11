@@ -15,23 +15,31 @@
   print("launching med_oncdrs_feature_gen")
   
   #-------------------------------------------------------------------------------#
-  # load the dia_feature code
-  med_oncdrs <- med_feature_gen(cohort, cohort_key_var_merge, cohort_key_var, 
-    med_oncdrs_file_mod, leak_oncdrs_med_day)
+  # Source > med_feature_gen
+  #-------------------------------------------------------------------------------#
+  med_oncdrs <- med_feature_gen(cohort=cohort, cohort_key_var_merge=cohort_key_var_merge, 
+    cohort_key_var=cohort_key_var, med_file_mod_arg=med_oncdrs_file_mod, 
+    leak_med_day_arg=leak_oncdrs_med_day, file_date_var="med_date")
 
   #-------------------------------------------------------------------------------#
-  # rename the variables
+  # Format 
+  #-------------------------------------------------------------------------------#
+
+  # rename variables
   var_rename <- setdiff(names(med_oncdrs), cohort_key_var_merge)
-  setnames(med_oncdrs, var_rename,
-    gsub("^med", "med.dfci", var_rename))
+  setnames_check(med_oncdrs, old=var_rename, new=gsub("^med", "med.dfci", var_rename))
+ 
   var_rename <- setdiff(names(med_oncdrs), cohort_key_var_merge)
-  setnames(med_oncdrs,  var_rename , paste0(gsub("_", "_dfci.", gsub("(.*)(\\.\\.)(.*)", "\\1", 
-    var_rename)), "..", gsub("(.*)(\\.\\.)(.*)", "\\3", 
+  setnames_check(med_oncdrs,  old=var_rename , new=paste0(gsub("_", "_dfci.", 
+    gsub("(.*)(\\.\\.)(.*)", "\\1", var_rename)), "..", gsub("(.*)(\\.\\.)(.*)", "\\3", 
     var_rename)))
-  setnames(med_oncdrs, gsub("(.*)(med.dfci_time)", "med_oncdrs_time", names(med_oncdrs)))
+  setnames_check(med_oncdrs, new=gsub("(.*)(med.dfci_time)", "med_oncdrs_time", 
+    names(med_oncdrs)))
 
+  #-------------------------------------------------------------------------------#
+  # Return
+  #-------------------------------------------------------------------------------#
 
-  ### return
   return(med_oncdrs)
 
 }

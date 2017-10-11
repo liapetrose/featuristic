@@ -19,7 +19,7 @@ feature_overview <- function() {
 	# number of features / complete cases
 	feature_count        <- ncol(pred_set_final[, mget(grep("^var", names(pred_set_final), 
 								value=T))])
-	feature_unique_count <- length(unique(gsub("(_days_to_last){0,}_timeframe.*", "", 
+	feature_unique_count <- length(unique(gsub("(_day_to_last){0,}_timeframe.*", "", 
 								names(pred_set_final[, mget(grep("^var", names(pred_set_final), 
 								value=T))]))))
 	obs_count            <- nrow(pred_set_final)
@@ -145,8 +145,10 @@ feature_overview <- function() {
     															collapse=" - "), na_col)	
     feature_vital_sign$indic_missing_threshold            <- sprintf("%s (omit: %d)", paste0(unlist(indic_missing_threshold),
     															collapse=" - "), zero_col)
-    feature_vital_sign$missing_imputation                 <- ifelse(fill_na, sprintf("%s (method: %s / perc.values imputed: %f)", as.character(fill_na),
-     															as.character(fill_na_method), as.numeric(impute_value_perc)), sprintf("Missing imputation disabled\n."))	
+    feature_vital_sign$missing_imputation                 <- ifelse(fill_na, sprintf("%s (method: %s / perc.values imputed: %f)", 
+    															as.character(fill_na),
+     															as.character(fill_na_method), as.numeric(impute_value_perc)), 
+    															sprintf("Missing imputation disabled\n."))	
 
   
     list_space("feature_vital_sign")
@@ -162,8 +164,8 @@ feature_overview <- function() {
 												"%Y-%m-%d"))
 	feature_vital_sign$feature_earliest  <- as.character(as.Date(min(date_col_table[var_name %like% "min" & 
 												!(var_name %like% "t0_date"), date]), "%Y-%m-%d"))
-	feature_vital_sign$feature_latest    <- as.character(as.Date(max(date_col_table[var_name %like% "max" & !(var_name %like% 
-												"t0_date"), date]), "%Y-%m-%d"))
+	feature_vital_sign$feature_latest    <- as.character(as.Date(max(date_col_table[var_name %like% "max" & 
+												!(var_name %like% "t0_date"), date]), "%Y-%m-%d"))
 
     list_space("feature_vital_sign")
 

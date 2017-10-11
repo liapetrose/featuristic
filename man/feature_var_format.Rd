@@ -5,7 +5,7 @@
 \title{Format features.}
 \usage{
 feature_var_format(dt_list, function_ext_1 = "_length_",
-  function_ext_2 = "_function_")
+  function_ext_2 = "_function_", drop = FALSE)
 }
 \arguments{
 \item{dt_list}{}

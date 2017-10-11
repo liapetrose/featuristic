@@ -8,196 +8,261 @@
 #' @param file_date_var
 #' @param cohort
 #' @param cohort_key_var_merge
+#' @param cohort_key_var
+#' @param mic_file_mod_arg
+#' @param leak_mic_day_arg
 #' @return
 #' @examples
 
-mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_date_var="mic_date") {
+mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_date_var="mic_date",
+  mic_file_mod_arg=mic_file_mod,leak_mic_day_arg=leak_mic_day) {
   
   print("launching mic_feature_gen")
-  
-   #-------------------------------------------------------------------------------#
-  # Load the  modified/pre-processed mic file for the specified data sample -- 
     
-  # load the data
-  tryCatch(mic <- readRDS_merge(mic_file_mod), warning=function(w)
+  #-------------------------------------------------------------------------------#
+  # SETUP
+  #-------------------------------------------------------------------------------#
+
+  # Load the data & subset
+  #-------------------------------------------------------------------------------#
+    
+  # load data
+  tryCatch(mic <- readRDS_merge(mic_file_mod_arg), error=function(e)
     print("no classified mic file available for the data sample"))
 
-  # subset to smaller sample for testing if so specified in control file
-  if (test_raw_file==TRUE) {
-    store_shorten_file("mic")
+  # ensure that date variables exist
+  if (!(paste0(file_date_var, "_1") %in% names(mic))) mic[, 
+    c(paste0(file_date_var, "_1")):=get(file_date_var)]
+
+
+  print(sprintf("number of observations: %d", nrow(mic)))
+
+  # subset to cohort
+  mic <- mic[!is.na(empi)]
+  mic <- mic[empi %in% cohort$empi]
+
+  print(sprintf("number of observations - cohort subset: %d", nrow(mic)))
+  
+  ## SAMPLE SIZE CHECK #1
+  assert("observations for cohort patients", nrow(mic)>0)
+
+  # subset to smaller sample (if test_mode==TRUE)
+  if (test_mode==TRUE) {
+    
+    mic <- mic[1:min(test_row, nrow(mic))]
+
   }
 
-  # (c) subset to the variables which are to be employed in the 
-  # feature construction process -- drop potential features (mic_time)
+  #-------------------------------------------------------------------------------#
+  # ADDITIONAL SUBSETTING / FORMATTING
+  #-------------------------------------------------------------------------------#
+
+  # drop irrelevant variables
   mic[, c("mic_time"):=NULL]
-  
+
+  # subset to positive/tier1 or 2 results
   mic <- mic[result=="positive" & result_tier %in% c("tier_1", 
     "tier_2")]
 
-  # (d) specify how to treat uncertain result_cat - for tier 1 results 
-  # where taxise package returns multiple matches - forced to use first match 
-  # -- (a) drop these results - i.e. re-categorize as "non_classifiable_organism"
-  # -- (b) keep the result_cat as it is - not sensible (?) as thereby create 
-  # separate feature for candida and candida uncertain where uncertainty is NOT a feature 
-  # of the 'state of health' that we are aiming to model
-  # -- (c) ignore uncertainty and group e.g. candida (uncertain_result) with candida
+  # group certain and uncertain organism classifications
   mic[org_genus %like% "(uncertain_result)", 
     org_genus:=gsub("_\\(uncertain_result\\)", "", org_genus)]
 
+  print(sprintf("number of observations - cohort subset and result subset: %d", nrow(mic)))
 
-   #-------------------------------------------------------------------------------#
-  # merge microbiology file with cohort (cohort_key_variables) & format dates
-  mic <- mic[empi %in% cohort$empi]
+  #-------------------------------------------------------------------------------#
+  # MERGING & TIMEFRAMES
+  #-------------------------------------------------------------------------------#
 
-  invisible(parse_date(mic, c("mic_date")))
+  # Date Formatting & Merge data file with cohort & Implement leakage control
+  #-------------------------------------------------------------------------------#
+ 
+  # date formatting
+  invisible(format_date(list(mic), c(file_date_var,paste0(file_date_var, "_1"))))
 
-  mic[, c("mic_date_1","mic_date_2"):=.(mic_date)]
+  # foverlaps merge
+  mic[, c(paste0(file_date_var, "_1"),paste0(file_date_var, "_2")):=.(get(file_date_var))]
 
-  mic <-foverlaps(mic, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
-    "mic_date_1" , "mic_date_2"), nomatch=0)
+  mic <-  foverlaps(mic, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+    paste0(file_date_var, "_1"), paste0(file_date_var, "_2")), nomatch=0)
 
+  print(sprintf("number of observations - cohort subset within the relevant timeframe(s): %d", nrow(mic)))
+
+  ## SAMPLE SIZE CHECK #2
+  assert("observations - cohort subset within the relevant timeframe(s)", nrow(mic)>0)
+
+  # time difference calculation (event date vs. t0 date)
   mic[, time_diff:=as.numeric(difftime(t0_date, get(file_date_var), 
     units="days"))]
 
   # implement leakage control 
-  if (!is.na(leak_mic_day)) {
-    mic <- mic[!(t0_date-mic_date_1<=leak_mic_day)]
+  if (!is.na(leak_mic_day_arg)) {
+    
+    mic <- mic[!(t0_date-get(paste0(file_date_var, "_1"))<=leak_mic_day_arg)]
+
   }
 
-   #-------------------------------------------------------------------------------#
-  # sub setting & dividing into smaller DT based on timeframe  - 
-  # return as list (...timeframe_comb)
-  invisible(timeframe_split(list("mic"), "mic_date"))
+  # split data into feature timeframes
+  #-------------------------------------------------------------------------------#
+  return_mult[mic_timeframe_comb, time_min, time_max] <- timeframe_split(list("mic"), file_date_var)[[1]]
+  name_ext_extended_tmp                               <- gsub("timeframe_comb", "", names(mic_timeframe_comb))
+  name_ext_tmp                                        <- name_ext_extended_tmp[2:length(name_ext_extended_tmp)]
 
-  name_ext_extended <- name_ext_extended[sapply(mic_timeframe_comb, nrow)!=0]
-  name_ext <- name_ext_extended[2:length(name_ext_extended)]
-  mic_timeframe_comb <- mic_timeframe_comb[sapply(mic_timeframe_comb, nrow)!=0]
-  
-  time_min <- min(do.call("c", lapply(mic_timeframe_comb, function(x) as.Date(min(x[, 
-    mic_date]), "%Y-%m-%d"))))
-  time_max <- max(do.call("c", lapply(mic_timeframe_comb, function(x) as.Date(max(x[, 
-    mic_date]), "%Y-%m-%d"))))
+  ## SAMPLE SIZE CHECK #3
+  assert("observations for cohort patients within relevant timeframes", 
+    all(sapply(mic_timeframe_comb, function(x) nrow(x)>0)))
 
+  #-------------------------------------------------------------------------------#
+  # FEATURE GENERATION
+  #-------------------------------------------------------------------------------#
 
-   #-------------------------------------------------------------------------------#
-  # reshaping - create microbiology features - highest hierarchy - i.e. tier1/tier 2 
-  # positive results - count variable 
+  # [1] Result count features (tier1/tier2)
+  #-------------------------------------------------------------------------------#
+  print("feature generation - mic_mic.pos.res_mic.blood.urine..mic_count")
+
   mic_result_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  result + 
-    paste0("mic.", result_tier), 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff"))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  result + paste0('mic.', result_tier)"), 
+    value.var = "time_diff", mode="basic"))
   
   mic_result_timeframe_comb <- feature_var_format(mic_result_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("positive", 
-    names(DT), value=T), paste0("mic_mic.pos.res_mic.blood.urine_", gsub("_", ".", 
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("positive", 
+    names(DT), value=T), new=paste0("mic_mic.pos.res_mic.blood.urine_", gsub("_", ".", 
     gsub("positive_", "",grep("positive", names(DT), value=T))), paste0("_mic.count.", 
     gsub("_", ".", gsub(".*(tier_[1-2]).*", "\\1", grep("positive", names(DT), value=T))), "..any"), 
-    name_ext)), DT=mic_result_timeframe_comb , name_ext_extended))
+    name_ext_tmp)), DT=mic_result_timeframe_comb , name_ext_extended_tmp)
 
-  inv_lapply(mic_result_timeframe_comb, function(x) setnames(x, gsub("days\\.to\\.last_(mic\\.count\\.tier\\.[0-9]\\.\\.any_)(.*$)", 
-    "\\1days_to_last_\\2", names(x))))
+  inv_lapply(mic_result_timeframe_comb, function(x) 
+    setnames_check(x, new=gsub("days\\.to\\.last_(mic\\.count\\.tier\\.[0-9]\\.\\.any_)(.*$)", 
+    "\\1day_to_last_\\2", names(x))))
 
-   #-------------------------------------------------------------------------------#
-  # reshaping - create microbiology features - lower hierarchy - i.e. tier1/tier 2 
-  # positive results by category - count variable 
+  # [2] Result count features by organism category (tier1/tier2)
+  #-------------------------------------------------------------------------------#
+  print("feature generation - mic_mic.pos.res_mic.blood.urine...mic_cat_count")
+
   mic_result_cat_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  result + 
-    paste0("mic.", result_tier) + org_genus, 
-    fun.aggregate=list(length, function(x) min(x, na.rm=T)), value.var = "time_diff"))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  result + paste0('mic.', result_tier) + org_genus"), 
+    value.var = "time_diff",mode="basic"))
 
   mic_result_cat_timeframe_comb <- feature_var_format(mic_result_cat_timeframe_comb)
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("positive", 
-    names(DT), value=T), paste0("mic_mic.pos.res_mic.blood.urine_", 
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("positive", 
+    names(DT), value=T), new=paste0("mic_mic.pos.res_mic.blood.urine_", 
     gsub("([1-2])\\_", "\\1_mic.cat.count.tier.\\1..", 
     gsub("_([1-2])", ".\\1", gsub("positive_", "", grep("positive", names(DT), value=T)))), 
-    name_ext)), 
-    DT=mic_result_cat_timeframe_comb , name_ext_extended))
+    name_ext_tmp)), DT=mic_result_cat_timeframe_comb , name_ext_extended_tmp)
 
-   #-------------------------------------------------------------------------------#
-  # reshaping - create microbiology features - resistant tier 1 infections (i.e. 
-  ## resistant to at least one antibiotic)
+  # [3] Antibiotic resistance feature (tier 1 - resistant to at least one antibiotic)
+  #-------------------------------------------------------------------------------#
+  print("feature generation - mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.count.tier.1")
+
   mic_result_resistant_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("resistant", 
-    tier_1_anti_resis), length, subset=.(result_tier=="tier_1" & result=="positive" & 
-    tier_1_anti_resis==1)))
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('resistant', tier_1_anti_resis)"), 
+    mode="length", value.var = "time_diff",
+    subset=as.character(as.quoted("result_tier=='tier_1' & tier_1_anti_resis==1"))))
 
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("resistant", 
-    names(DT), value=T), paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.count.tier.1..", 
-    gsub("[1-2]", "", grep("resistant", names(DT), value=T)), name_ext)), 
-    DT=mic_result_resistant_timeframe_comb , name_ext_extended))
-
-   #-------------------------------------------------------------------------------#
-  # reshaping - create microbiology features - resistant tier 1 infections --
-  # number of infections resistant to -- count only results for which resistant to at least one antibiotic
-  mic_result_resistant_count_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
-    dcast.data.table(x, outcome_id + empi + t0_date ~  paste0("resistant_", 
-    tier_1_anti_resis_count), length, subset=.(result_tier=="tier_1" & result=="positive" & 
-    tier_1_anti_resis_count>0)))
-  
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("resistant", 
-    names(DT), value=T), paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.count.tier.1..", 
-    grep("resistant", names(DT), value=T), name_ext)), 
-    DT=mic_result_resistant_count_timeframe_comb , name_ext_extended))
-
-   #-------------------------------------------------------------------------------#
-  # reshaping - create microbiology features - resistant tier 1 infections --
-  # resistant to...
-  mic_result_resistant_anti_timeframe_comb <- copy(mic_timeframe_comb)
-  mic_result_resistant_anti_timeframe_comb <- lapply(mic_result_resistant_anti_timeframe_comb, 
-    function(x) unique(x[, grep("anti_res_", names(x), value=T):=(lapply(.SD, function(y) sum(y, na.rm=T))), 
-    .SDcols=grep("anti_res_", names(x), value=T), by=c("outcome_id", "empi", "t0_date")][, mget(
-    c(grep("anti_res_", names(x), value=T), "outcome_id", "empi", "t0_date"))], 
-    by=c("outcome_id", "empi", "t0_date")))
-
-  invisible(mapply(function(DT,name_ext) setnames(DT, grep("anti_res_", 
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("resistant", 
     names(DT), value=T), 
-    paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.name.tier.1..", 
-    grep("anti_res_", names(DT), value=T), name_ext)), 
-    DT=mic_result_resistant_anti_timeframe_comb , name_ext_extended))
+    new=paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.count.tier.1..", 
+    gsub("[1-2]", "", grep("resistant", names(DT), value=T)), name_ext_tmp)), 
+    DT=mic_result_resistant_timeframe_comb , name_ext_extended_tmp)
 
-   #-------------------------------------------------------------------------------#
-  # merge mic feature files
+  # [4] Antibiotic resistance feature by the number of antibiotics to which resistant 
+  #     (tier 1 - resistant to at least one antibiotic))
+  #-------------------------------------------------------------------------------#
+  print("feature generation - mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.count.tier.1")
+
+  mic_result_resistant_count_timeframe_comb <- lapply(mic_timeframe_comb, function(x) 
+    dcast.data.table_check(data=x, 
+    formula=as.formula("outcome_id + empi + t0_date ~  paste0('resistant_', tier_1_anti_resis_count)"), 
+    mode="length",value.var = "time_diff",
+    subset=as.character(as.quoted("result_tier=='tier_1' & tier_1_anti_resis_count>0"))))
+  
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("resistant", 
+    names(DT), value=T), 
+    new=paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.count.tier.1..", 
+    grep("resistant", names(DT), value=T), name_ext_tmp)), 
+    DT=mic_result_resistant_count_timeframe_comb , name_ext_extended_tmp)
+
+  # [4] Antibiotic resistance feature by the antibiotics to which resistant (tier 1))
+  #-------------------------------------------------------------------------------#
+  print("feature generation - mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.name.tier.1")
+  
+  # [*] copy mic_timeframe_comb
+  mic_result_resistant_anti_timeframe_comb <- copy(mic_timeframe_comb)
+
+  mic_result_resistant_anti_timeframe_comb <- lapply(mic_result_resistant_anti_timeframe_comb, 
+    function(x) {
+
+      if (length(grep("anti_res_", names(x), value=T))>0) {
+        
+        unique(x[, grep("anti_res_", names(x), value=T):=(lapply(.SD, function(y) sum(y, na.rm=T))), 
+          .SDcols=grep("anti_res_", names(x), value=T), by=c("outcome_id", "empi", "t0_date")][, mget(
+          c(grep("anti_res_", names(x), value=T), "outcome_id", "empi", "t0_date"))], 
+          by=c("outcome_id", "empi", "t0_date"))
+
+      } else {
+
+        unique(x["outcome_id", "empi", "t0_date"], by=c("outcome_id", "empi", "t0_date"))
+
+      }
+    })
+
+  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("anti_res_", 
+    names(DT), value=T), 
+    new=paste0("mic_mic.pos.res_mic.blood.urine_mic.tier.1_mic.resistant.anti.name.tier.1..", 
+    grep("anti_res_", names(DT), value=T), name_ext_tmp)), 
+    DT=mic_result_resistant_anti_timeframe_comb , name_ext_extended_tmp)
+
+  #-------------------------------------------------------------------------------#
+  # FEATURE MERGING
+  #-------------------------------------------------------------------------------#
+
+  print("feature merging")
+
   mic_feature_list <- list("mic_result_timeframe_comb",
     "mic_result_cat_timeframe_comb", "mic_result_resistant_count_timeframe_comb",
     "mic_result_resistant_timeframe_comb", 
     "mic_result_resistant_anti_timeframe_comb")
+  mic_feature_list <- mic_feature_list[which(mic_feature_list %in% ls())]
 
-  timeframe_combine(mic_feature_list)
+  # combine features across feature timeframes
+  mic_list_tmp <- timeframe_combine(mget(unlist(mic_feature_list)), mic_feature_list)
 
-  mic <- Reduce(mymerge, mget(unlist(mic_feature_list)))
+  # combine features across feature types
+  mic <- Reduce(mymerge, mic_list_tmp)
 
-   #-------------------------------------------------------------------------------#
-  # merge with cohort file - empty records -> 0
+  #-------------------------------------------------------------------------------#
+  # MERGE FEATURES WITH COHORT & FORMAT VARIABLES
+  #-------------------------------------------------------------------------------#
+
+  print("cohort merging & feature formatting")
+
+  # merge
   mic <- mic[cohort, mget(names(mic)), on=c("outcome_id", "empi", "t0_date")]
+  suppressWarnings(mic[, grep("mic_id$", names(mic), value=T):=NULL])
 
-  non_days_to_last_var <- setdiff(names(mic),grep("days_to_last", names(mic),value=T))
-  set_na_zero(mic, subset_col=non_days_to_last_var)
+  # format variables
+  mic <- feature_type_format(dt=mic, day_to_last=timeframe_day_to_last, 
+    num_feature_pattern=NA, int_feature_pattern="...", 
+    factor_feature_pattern=NA)
 
-  days_to_last_var <-grep("days_to_last", names(mic),value=T)
-  set_na_zero(mic, subset_col=days_to_last_var, NA)
+  # rename variables
+  setnames_check(mic, new=gsub("mean_temp", "mean", names(mic)))
+ 
+  # add in additional var / drop unnecessary variables
+  mic[, ':='(mic_time_min=time_min, lab_time_max=time_max)]
 
-   #-------------------------------------------------------------------------------#
-  # categorize variables to ensure proper treatment in models -- integer 
-  mic_integer <- mic[, mget(setdiff(names(mic), c("outcome_id", "t0_date", "empi")))]
-  mic_integer[, names(mic_integer):=lapply(.SD, function(x) as.integer(x))]
-
-  mic <- cbind(mic[, mget(c("outcome_id", "t0_date", "empi"))], mic_integer)
-
-  mic[, ':='(mic_time_min=time_min, mic_time_max=time_max)]
-
-  if (length(grep("mic_id$", names(mic), value=T))>0) mic[, grep("mic_id$", names(mic), value=T):=NULL]
-
-  feature_var_format_day_to_last(mic)
-
-   #-------------------------------------------------------------------------------#
-  # return mic features & delete key files created in function
-  rm(mic_integer)
+  #-------------------------------------------------------------------------------#
+  # CLEAR MEMORY & RETURN FEATURE SET
+  #-------------------------------------------------------------------------------#
   rm(mic_timeframe_comb)
   rm(list=unlist(mic_feature_list))
 
-  return (mic)
+  return(mic)
 
 }
 
