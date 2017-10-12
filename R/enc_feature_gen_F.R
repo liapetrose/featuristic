@@ -87,11 +87,11 @@ enc_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   #-------------------------------------------------------------------------------#
 
   # standardize column (names)
-  setnames_check(enc$enc_class, new=gsub("enc_clinic","enc_op", names(enc$enc_class)))
+  setnames_check(enc_class, new=gsub("enc_clinic","enc_op", names(enc_class)))
   
-  suppressWarnings(enc$op_visit[, grep("enc_op", names(enc$op_visit), value=T):=NULL])
-  suppressWarnings(enc$op_visit[, grep("enc_clinic", names(enc$op_visit), value=T):=NULL])
-  suppressWarnings(enc$op_visit[, enc_op:=1])
+  suppressWarnings(op[, grep("enc_op", names(op), value=T):=NULL])
+  suppressWarnings(op[, grep("enc_clinic", names(op), value=T):=NULL])
+  suppressWarnings(op[, enc_op:=1])
 
 
   #-------------------------------------------------------------------------------#
