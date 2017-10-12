@@ -92,7 +92,7 @@ if (stage %in% c('2', '12')) {
 	print("starting stage-2 (feature compilation)")
 
 	feature_compilation(cohort_path=cohort_path, control_path=control_path,
- 		data_def_path=data_path, feature_path=feature_path,
+ 		data_def_path=data_def_path, feature_path=feature_path,
  		feature_set_id=feature_set_id,
  		feature_set_prefix=feature_set_prefix)
 
