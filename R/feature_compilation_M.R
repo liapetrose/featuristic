@@ -110,7 +110,7 @@ feature_compilation <- function(cohort_path, control_path,
 	print(sprintf("columns that are deselected (%d)", length(unique(col_omit_select))))
 	deselect_col <- length(unique(col_omit_select))
 
-	pred_set[, col_omit_select:=NULL, with=F]
+	pred_set[, as.character(col_omit_select) := NULL, ]
 
 	obs_check(pred_set)
 
@@ -122,12 +122,12 @@ feature_compilation <- function(cohort_path, control_path,
 
 	num_factor_var   <- setdiff(names(pred_set[, (c(which(sapply(pred_set, function(x) 
 		class(x)[1]) %in% c("numeric", "factor")))), with=F]), union(cohort_key_var, 
-		names(cohort_extra_col)))
+		names(cohort_extra_col))) # vector of numeric and factor variables (column names)
 	write.csv(num_factor_var, paste0(temp_folder, "_num_var.csv"), row.names=F)
 
 	indic_var <- setdiff(names(pred_set[, (c(which(sapply(pred_set, function(x) 
 		class(x)[1]) %in% c("integer")))), with=F]), union(cohort_key_var, 
-		names(cohort_extra_col)))
+		names(cohort_extra_col))) # vector of indicator variables (column names)
 	write.csv(indic_var, paste0(temp_folder, "_indic_var.csv"), row.names=F)
 	
 	if (miss_imp==FALSE) {
@@ -135,12 +135,13 @@ feature_compilation <- function(cohort_path, control_path,
 		if(is.na(impute_var_cat)) {
 		
 			## no steps
+			num_factor_var_mod <- num_factor_var # if no exceptions to imputation rule, retain all numeric and factor variables for the undoing of the imputation
 
 		} else {
 
 			num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
 				names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-				grep("_day_to_last", names(pred_set),value=T)))
+				grep("_day_to_last", names(pred_set),value=T))) # what subset should we be imputing for?
 
 		}
 
@@ -163,7 +164,7 @@ feature_compilation <- function(cohort_path, control_path,
 	#---------------------------------------------#
 	if (miss_imp==TRUE) {
 
-		## no steps
+		## no steps - imputed (i.e. missing treated as 0) by default in stage 1
 
 	} else if (miss_imp==FALSE) {
 
