@@ -109,6 +109,26 @@ feature_initialisation <- function() {
 	ifelse(all(c("outcome_id", "outcome", "t0_date", "empi") %in% names(cohort)), 
 	  "cohort columns names correct", stop("cohort column names incorrect"))
 
+	# verify data types of key columns
+	# ----------------------------------
+	if(typeof(cohort$empi) == "character"){
+		print("empi column type [character] is correct")
+		if(typeof(cohort$outcome_id) == "integer"){
+			print("outcome_id column type [integer] is correct")
+			if(is.Date(cohort$t0_date)){
+				print("t0_date column type [Date] is correct")
+				print("all key columns are of correct data type. proceeding with stage 1")
+			} else{
+				stop("t0_date column must be of type Date")
+			}
+		} else{
+			stop("outcome_id column must be of type integer")
+		}
+	} else{
+		stop("empi column must be of type character")
+	}
+
+
 	# store key variables
 	# ----------------------------------
 	cohort_key_var <<- c("outcome_id", "t0_date", "empi")
