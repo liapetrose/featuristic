@@ -7,10 +7,13 @@
 #' @export
 #' @param pred_set_final Final feature set generated for which to generate an extensive set of summary stats
 #' @param pred_set "Penultimate" feature set from which the final feature set is generated after some variable name changes and column subsetting
+#' @param deselect_col Columns chosen to be deselected from the feature set 
+#' @param na_col Columns/features dropped based on the na threshold (quant missing threshold)
+#' @param zero_col Columns/features dropped based on the zero threshold (indic_missing_threshold)
 #' @return
 #' @examples
 
-feature_overview <- function(pred_set_final, pred_set) {	
+feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zero_col) {	
 
 	# overview stats
 	# ----------------------------------------------------------------------------#

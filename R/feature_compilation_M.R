@@ -419,7 +419,7 @@ feature_compilation <- function(cohort_path, control_path,
 	#                              STATS & OUTPUT                                 #
 	# ----------------------------------------------------------------------------#
 
-	feature_overview(pred_set_final = pred_set_final, pred_set = pred_set)
+	feature_overview(pred_set_final = pred_set_final, pred_set = pred_set, deselect_col = deselect_col, na_col = na_col, zero_col = zero_col)
 
 }
 
