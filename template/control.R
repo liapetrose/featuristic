@@ -14,6 +14,7 @@
 # the zolab server 
 
 project_path          <- "/data/zolab/featuristic/test_project/" 
+source_folder         <- paste0(project_path, "data_source/")       #[MODIFY]
 temp_folder           <- paste0(project_path, "temp/")              #[MODIFY]
 modified_folder       <- paste0(project_path, "modified/")          #[MODIFY]
 output_folder         <- paste0(project_path, "output/")            #[MODIFY]
@@ -22,73 +23,142 @@ output_folder         <- paste0(project_path, "output/")            #[MODIFY]
 #----------------------------------------------------------------------------#
 #----------------------------------------------------------------------------#
 
-# [1] data files
+# [0] data files used to generate master data subsets in stage 0
 #----------------------------
-# specify the data files that are to be used to generate each type of feature
+# specify the data files that are to be used to generate the master data subsets for 
+# each type of feature
 ## > the data 'objects' listed here, e.g. 'rpdr_dem_master_bwh_ed_100k' have to refer
-## to paths defined in the modified, project-specific 'data_path.R' script
+## to paths defined in the project-specific 'data_path.R' script
  
-# BWH - RPDR                                                                 #[MODIFY]
+# BWH - RPDR        #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
 # --------------           
 
 ## > Generate demographic features
-dem_file_mod <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_dfci)  
+dem_file_source <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_dfci)  
 
 ## > Generate microbiology features
-mic_file_mod <- list(rpdr_mic_master_bwh_ed_100k)  
+mic_file_source <- list(rpdr_mic_master_bwh_ed_100k)  
 
 ## > Generate diagnosis features
-dia_file_mod <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
+dia_file_source <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
 
 ## > Generate encounter features
-enc_file_mod <- list(rpdr_enc_master_bwh_ed_100k, rpdr_enc_master_dfci)
+enc_file_source <- list(rpdr_enc_master_bwh_ed_100k, rpdr_enc_master_dfci)
 
 ## > Generate vital sign features
-lvs_file_mod <- list(rpdr_lvs_master_bwh_ed_100k, rpdr_lvs_master_dfci) 
+lvs_file_source <- list(rpdr_lvs_master_bwh_ed_100k, rpdr_lvs_master_dfci) 
 
 ## > Generate procedure features
-prc_file_mod <- list(rpdr_prc_master_bwh_ed_100k, rpdr_prc_master_dfci)
+prc_file_source <- list(rpdr_prc_master_bwh_ed_100k, rpdr_prc_master_dfci)
 
 ## > Generate medication features
-med_file_mod <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_dfci)
+med_file_source <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_dfci)
 
 ## > Generate lab features
-lab_file_mod <- list(rpdr_lab_master_bwh_ed_100k)
+lab_file_source <- list(rpdr_lab_master_bwh_ed_100k)
 
-# BWH - EDADMIN 															 #[MODIFY]
+# BWH - EDADMIN   #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
 # --------------
 
 ## > Generate ed encounter/order features
-ed_enc_file_mod     <- list(edadmin_ed_master_bwh_ed_100k)
+ed_enc_file_source     <- list(edadmin_ed_master_bwh_ed_100k)
 
-# DFCI - ONCDRS    															 #[MODIFY]
+# DFCI - ONCDRS   #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
 # --------------
 
 ## > Generate oncdrs chemo features
-chemo_oncdrs_file_mod <- list(oncdrs_chemo_master_dfci)
+chemo_oncdrs_file_source <- list(oncdrs_chemo_master_dfci)
 
 ## > Generate oncdrs medication features
-med_oncdrs_file_mod   <- list(oncdrs_med_master_dfci)
+med_oncdrs_file_source   <- list(oncdrs_med_master_dfci)
 
 ## > Generate oncdrs encounter features
-enc_oncdrs_file_mod   <- list(oncdrs_enc_master_dfci)
+enc_oncdrs_file_source   <- list(oncdrs_enc_master_dfci)
 
 ## > Generate oncdrs lab features
-lab_oncdrs_file_mod   <- list(oncdrs_lab_master_dfci)
+lab_oncdrs_file_source   <- list(oncdrs_lab_master_dfci)
 
 ## > Generate oncdrs diagnosis features
-dia_oncdrs_file_mod   <- list(oncdrs_dia_master_dfci)
+dia_oncdrs_file_source   <- list(oncdrs_dia_master_dfci)
+
+#[1] data files used in stage 1 -- by default assigned to output from stage 0
+#----------------------------
+
+#[LEAVE UNCHANGED UNLESS YOU WANT TO SKIP STAGE 0 (AT THE COST OF EXTRA COMPUTE TIME)]
+
+## the data files here are to be used to generate each type of feature
+## by default, these are assigned standardized datasets that stage 1 expects from the stage 2 output
+ 
+# BWH - RPDR      #[LEAVE UNCHANGED UNLESS YOU WANT TO SKIP STAGE 0 (AT THE COST OF EXTRA COMPUTE TIME)]
+# --------------           
+
+## > Generate demographic features
+dem_file_mod <- paste0(source_folder, "dem.Rds")
+
+## > Generate microbiology features
+mic_file_mod <- paste0(source_folder, "mic.Rds")
+
+## > Generate diagnosis features
+dia_file_mod <- paste0(source_folder, "dia.Rds")
+
+## > Generate encounter features
+enc_file_mod <- paste0(source_folder, "enc.Rds")
+
+## > Generate vital sign features
+lvs_file_mod <- paste0(source_folder, "lvs.Rds")
+
+## > Generate procedure features
+prc_file_mod <- paste0(source_folder, "prc.Rds")
+
+## > Generate medication features
+med_file_mod <- paste0(source_folder, "med.Rds")
+
+## > Generate lab features
+lab_file_mod <- paste0(source_folder, "lab.Rds")
+
+# BWH - EDADMIN     #[LEAVE UNCHANGED UNLESS YOU WANT TO SKIP STAGE 0 (AT THE COST OF EXTRA COMPUTE TIME)]
+# --------------
+
+## > Generate ed encounter/order features
+ed_enc_file_mod     <- paste0(source_folder, "ed.Rds")
+
+# DFCI - ONCDRS    	#[LEAVE UNCHANGED UNLESS YOU WANT TO SKIP STAGE 0 (AT THE COST OF EXTRA COMPUTE TIME)]
+# --------------
+
+## > Generate oncdrs chemo features
+chemo_oncdrs_file_mod <- paste0(source_folder, "chemo_oncdrs.Rds")
+
+## > Generate oncdrs medication features
+med_oncdrs_file_mod   <- paste0(source_folder, "med_oncdrs.Rds")
+
+## > Generate oncdrs encounter features
+enc_oncdrs_file_mod   <- paste0(source_folder, "enc_oncdrs.Rds")
+
+## > Generate oncdrs lab features
+lab_oncdrs_file_mod   <- paste0(source_folder, "lab_oncdrs.Rds")
+
+## > Generate oncdrs diagnosis features
+dia_oncdrs_file_mod   <- paste0(source_folder, "dia_oncdrs.Rds")
 
 
 # [C] feature selection 
 #----------------------------------------------------------------------------#
 #----------------------------------------------------------------------------#
 
+# [0] feature types to source from RPDR datasets      #[MODIFY]
+#--------------------------------#
+# specify the feature categories which for which master data subsets should be created (stage-0)
+
+source_list <- list(
+  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
+  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs"
+)
+
 # [1] feature types to assemble                                            #[MODIFY]
 #--------------------------------#
-# specify the feature categories which are to be assembled (stage-1)
+# specify the feature categories which are to be assembled using the datasets from stage 0 (stage-1)
 
-assemble_list <- list(                                                  	
+assemble_list <- list(                                                    
   # basic
   "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
   "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
@@ -107,6 +177,7 @@ compile_list <- list(
   # combined
   "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
+
 
 
 
