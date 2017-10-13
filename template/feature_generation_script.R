@@ -4,8 +4,8 @@
 # Control parameters
 #----------------------------------------------------------------------------#
 stage <- as.character(commandArgs(trailingOnly = TRUE)[1])
-
 print(sprintf("stage: %s", stage))
+stage_vector <- unlist(strsplit(stage, split = '')) # break stage into a vector of all stages to run
 
 # SETUP
 #----------------------------------------------------------------------------#
@@ -72,9 +72,22 @@ feature_set_id       <- "4"
 # EXECUTION
 #----------------------------------------------------------------------------#
 
+# Execute Stage-0 > Create and subset data sources from which features can be constructed
+#---------------------------------------
+if ('0' %in% stage_vector) {
+
+	print("starting stage-0 (feature sourcing)")
+
+	feature_sourcing(cohort_path=cohort_path, control_path=control_path,
+ 		data_def_path=data_def_path, feature_path=feature_path,
+ 		feature_set_id=feature_set_id,
+ 		feature_set_prefix=feature_set_prefix)
+}
+
+
 # Execute Stage-1 > Construct the Features
 #---------------------------------------
-if (stage %in% c('1', '12')) {
+if ('1' %in% stage_vector) {
 
 	print("starting stage-1 (feature construction)")
 
@@ -87,7 +100,7 @@ if (stage %in% c('1', '12')) {
 
 # Execute Stage-2 > Assemble the Features
 #---------------------------------------
-if (stage %in% c('2', '12')) {
+if ('2' %in% stage_vector) {
 
 	print("starting stage-2 (feature compilation)")
 
