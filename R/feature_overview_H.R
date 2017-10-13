@@ -10,10 +10,11 @@
 #' @param deselect_col Columns chosen to be deselected from the feature set 
 #' @param na_col Columns/features dropped based on the na threshold (quant missing threshold)
 #' @param zero_col Columns/features dropped based on the zero threshold (indic_missing_threshold)
+#' @param date_col_table data.table with earliest/latest observation dates for each of the feature sets
 #' @return
 #' @examples
 
-feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zero_col) {	
+feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zero_col, date_col_table) {	
 
 	# overview stats
 	# ----------------------------------------------------------------------------#
