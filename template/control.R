@@ -30,7 +30,8 @@ output_folder         <- paste0(project_path, "output/")            #[MODIFY]
 ## > the data 'objects' listed here, e.g. 'rpdr_dem_master_bwh_ed_100k' have to refer
 ## to paths defined in the project-specific 'data_path.R' script
  
-# BWH - RPDR        #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
+# BWH - RPDR        #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)] 
+#                   #[NA for those not of interest]
 # --------------           
 
 ## > Generate demographic features
@@ -58,12 +59,14 @@ med_file_source <- list(rpdr_med_master_bwh_ed_100k, rpdr_med_master_dfci)
 lab_file_source <- list(rpdr_lab_master_bwh_ed_100k)
 
 # BWH - EDADMIN   #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
+#                 #[NA for those not of interest]
 # --------------
 
 ## > Generate ed encounter/order features
-ed_enc_file_source     <- list(edadmin_ed_master_bwh_ed_100k)
+ed_file_source     <- list(edadmin_ed_master_bwh_ed_100k)
 
 # DFCI - ONCDRS   #[MODIFY TO INDICATE MASTER COHORTS OF INTEREST (eg. bwh_ed_100k, icmp, dfci etc.)]
+#                 #[NA for those not of interest]
 # --------------
 
 ## > Generate oncdrs chemo features

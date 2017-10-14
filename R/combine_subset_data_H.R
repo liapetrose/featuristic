@@ -16,7 +16,7 @@ combine_subset_data <- function(file_source_list, feature_set, cohort_empi){
 	# load and combine all datasets relevant to concerned feature_set
 	#-------------------------------------------------------------------------------#
 	
-	list_of_list_feature_set <- c("enc") # for which feature sets are individual cohort files a list of files?
+	list_of_list_feature_set <- c("enc", "ed") # for which feature sets are individual cohort files a list of files?
 
 	# accounting for the edge cases such as "enc", outlined in object list_of_list_feature_set, where each dataset in the list consists of a list of datasets
 	if(feature_set %in% list_of_list_feature_set){

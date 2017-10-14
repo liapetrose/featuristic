@@ -45,16 +45,14 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 	error_list   <- c()
 	success_list <- c()
 	print("commence stage 0 - preparing master data subsets by feature set ")
+	print(sprintf("Number of patients in cohort: %d", length(cohort_empi)))
+	sink(paste0(temp_folder, "source_dataset_creation_check_", feature_set,"_",feature_set_name,".txt"), split=TRUE)
 
 	# Loop over files to create merged and subset versions of each using the combine_subset_data helper function
 	#----------------------------------------------------------------------------#
 	inv_lapply(source_list, function(feature_set) {
 
 		print(paste0("start - ", feature_set))
-
-		sink(paste0(temp_folder, "source_dataset_creation_check_", feature_set,"_",feature_set_name,".txt"), split=TRUE)
-
-		print(sprintf("Number of patients in cohort: %d", length(cohort_empi)))
 		
 		# create a dictionary for which list of source filepaths correspond to which feature set
 		file_source_list_dictionary <- list(
@@ -75,12 +73,12 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 		)
 
 		# extract the list of file paths that are relevant to the concerned feature_set
-		file_source_list <- file_source_list_dictionary[[feature_set_name]]
+		file_source_list <- file_source_list_dictionary[[feature_set]]
 
 		# call helper to combine, subset and save results for current feature_set
 		combine_subset_data(file_source_list = file_source_list, feature_set = feature_set, cohort_empi = cohort_empi)
-		sink()
 	})
+	sink()
 }	
 
 #----------------------------------------------------------------------------#
