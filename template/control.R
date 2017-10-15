@@ -15,9 +15,12 @@
 
 project_path          <- "/data/zolab/featuristic/test_project/" 
 source_folder         <- paste0(project_path, "data_source/")       #[MODIFY]
+raw_feature_folder    <- paste0(project_path, "raw_feature/")       #[MODIFY]
+mod_feature_folder    <- paste0(project_path, "mod_feature/")       #[MODIFY]
+final_feature_folder  <- paste0(project_path, "final_feature/")     #[MODIFY]
+metadata_folder       <- paste0(project_path, "metadata/")
 temp_folder           <- paste0(project_path, "temp/")              #[MODIFY]
-modified_folder       <- paste0(project_path, "modified/")          #[MODIFY]
-output_folder         <- paste0(project_path, "output/")            #[MODIFY]
+
 
 # [B] data 
 #----------------------------------------------------------------------------#
