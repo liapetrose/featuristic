@@ -98,11 +98,24 @@ if ('1' %in% stage_vector) {
 }
 
 
-# Execute Stage-2 > Assemble the Features
+# Execute Stage-2 > Modify (clean, subset) the Features
 #---------------------------------------
 if ('2' %in% stage_vector) {
 
-	print("starting stage-2 (feature compilation)")
+	print("starting stage-2 (feature modification)")
+
+	feature_modification(cohort_path=cohort_path, control_path=control_path,
+ 		data_def_path=data_def_path, feature_path=feature_path,
+ 		feature_set_id=feature_set_id,
+ 		feature_set_prefix=feature_set_prefix)
+
+}
+
+# Execute Stage-3 > Assemble the Features
+#---------------------------------------
+if ('3' %in% stage_vector) {
+
+	print("starting stage-3 (feature compilation)")
 
 	feature_compilation(cohort_path=cohort_path, control_path=control_path,
  		data_def_path=data_def_path, feature_path=feature_path,
