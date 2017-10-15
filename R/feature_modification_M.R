@@ -38,7 +38,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 	# feature_set takes the form "dem", "dia", "prc",
 	feature_mod <- function(feature_set){
-		print("beginning stage 2 (modification) of ", feature_set, " features:")
+		print(paste0("beginning stage 2 (modification) of ", feature_set, " features:"))
 
 		# load the raw features corresp to the feature_set, set key to outcome_id 
 		#------------------------------------------------------------------------#
