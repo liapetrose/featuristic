@@ -44,7 +44,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		#------------------------------------------------------------------------#
 		print(paste0("Reading in features for ", feature_set))
 		assign(paste0(x, "_feature"), 
-			   setkey(as.data.table(readRDS(paste0(modified_folder, x, "_feature_", 	  feature_set_name, ".Rds"))), 
+			   setkey(as.data.table(readRDS(paste0(raw_feature_folder, x, "_feature_", feature_set_name, ".Rds"))), 
 			   	outcome_id), 
 			   envir = sys.frame(sys.parent(n=2)))
 
@@ -279,18 +279,18 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		# SAVE
 		#---------------------------------------------#
-		saveRDS(pred_set, file = paste0(modified_folder, feature_set, "_feature_set_mod_", 
+		saveRDS(pred_set, file = paste0(mod_feature_folder, feature_set, "_feature_set_mod_", 
 			feature_set_name, ".Rds"))
 
-		write.csv(as.data.table(names(pred_set)), file=paste0(output_folder, feature_set,
+		write.csv(as.data.table(names(pred_set)), file=paste0(metadata_folder, feature_set,
 			"_feature_set_mod_var_name_", feature_set_name, ".csv"),row.names=F)
 
 		write.csv(unique(data.table(var_name=c(col_omit_missing_name, "x"), perc=c(col_omit_missing, 
-			"_")))[order(-perc)],file=paste0(output_folder,  feature_set, "_feature_set_mod_col_omit_missing_", 
+			"_")))[order(-perc)],file=paste0(metadata_folder,  feature_set, "_feature_set_mod_col_omit_missing_", 
 			feature_set_name, ".csv"),row.names=F)
 		write.csv(unique(data.table(var_name=c(col_omit_zero_name,"x"), 
-			perc=c(col_omit_zero, "_")))[order(-perc)], file=paste0(output_folder, feature_set, "_feature_set_mod_col_omit_zero_", feature_set_name, ".csv"),row.names=F)
-		write.csv(as.data.table(c(col_omit_select, "x")), file=paste0(output_folder, 
+			perc=c(col_omit_zero, "_")))[order(-perc)], file=paste0(metadata_folder, feature_set, "_feature_set_mod_col_omit_zero_", feature_set_name, ".csv"),row.names=F)
+		write.csv(as.data.table(c(col_omit_select, "x")), file=paste0(metadata_folder, 
 			feature_set, "_feature_set_mod_col_omit_select_", feature_set_name, ".csv"),row.names=F)
 
 		# clear up memory
