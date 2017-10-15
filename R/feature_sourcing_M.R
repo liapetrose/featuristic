@@ -35,7 +35,7 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 	# save a list of the unique empis used to subset the datasets in stage 0 - for downstream checking
 	cohort_empi <- unique(cohort$empi)
 	saveRDS(data.table(empi = cohort_empi), 
-		paste0(modified_folder, "empi_list_", feature_set_prefix, feature_set_id, ".Rds"))
+		paste0(source_folder, "empi_list_", feature_set_prefix, feature_set_id, ".Rds"))
 
 	#----------------------------------------------------------------------------#
 	#                		       FEATURE SOURCING                              #
