@@ -66,7 +66,7 @@ feature_construction <- function(cohort_path, control_path, data_def_path, featu
 			sink()
 
 			# save 
-			saveRDS(temp_feature, paste0(modified_folder, paste0(feature_set, "_feature_"), 
+			saveRDS(temp_feature, paste0(raw_feature_folder, paste0(feature_set, "_feature_"), 
 				feature_set_name, ".Rds"))
 	
 			rm("temp_feature")
