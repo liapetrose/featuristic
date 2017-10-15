@@ -1,16 +1,16 @@
 #----------------------------------------------------------------------------#
 
-#' @title Compile features (Stage II).
+#' @title Compile features modified in stage 2 [this is stage 3].
 #'
-#' @description \
+#' @description Read in the curated and cleaned features of each type ("dem" ... etc.) from the output of stage 2 and compile them to one large prediction set. Then create summary statistics and save the final results as the final feature set output, ready to be used in a supervised learning model.
 #'
 #' @export
-#' @param cohort_path 
-#' @param control_path 
-#' @param data_def_path    
-#' @param feature_path  
-#' @param feature_set_id     
-#' @param feature_set_prefix 
+#' @param cohort_path path to .Rds cohort file which must have the following column names - "empi", "outcome", "t0_date", "outcome_id"; can also contain a "test_set" column; other columns are non-essential but not a problem (character)
+#' @param control_path path to control.R file which contains the user defined parameters for feature construction (character)
+#' @param data_def_path path to data_def_path.R file which contains lists of relevant file paths where master data sets that are to be used in the FC process live (character)
+#' @param feature_path path to feature_selection.csv file which provides options to select variables for FC process (character)
+#' @param feature_set_id suffix indicating an id number or index number for this cohort's feature set (if multiple attempts were made with the same cohort, for example) (character)
+#' @param feature_set_prefix prefix identifying the cohort / feature set that is used in the output file names for all datasets / output created as part of the FC process (character)
 #' @return
 #' @examples
 
