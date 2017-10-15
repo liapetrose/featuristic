@@ -8,7 +8,7 @@ mem_res=100000
 mem_lim=500000
 core_multi=4
 
-# stage specification (can take forms such as '0', '12', '01', '012')
+# stage specification (can take forms such as '0', '12', '01', '23', '0123')
 stage='0'
 
 cd  /data/zolab/featuristic/codebase/featuristic/template
