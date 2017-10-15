@@ -19,7 +19,7 @@ feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zer
 	# overview stats
 	# ----------------------------------------------------------------------------#
 
-	sink(paste0(output_folder, "feature_stat_temp_", feature_set_name, "_", current_date), 
+	sink(paste0(metadata_folder, "feature_stat_temp_", feature_set_name, "_", current_date), 
 		split=TRUE)
 
 	# number of features / complete cases
@@ -192,9 +192,9 @@ feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zer
 	
 	print(head(feature_vital_sign))
 
-	if (file.exists(paste0(output_folder, "feature_vital_sign.csv"))) {
+	if (file.exists(paste0(metadata_folder, "feature_vital_sign.csv"))) {
 			
-		feature_vital_sign_raw <- fread(paste0(output_folder, "feature_vital_sign.csv"))
+		feature_vital_sign_raw <- fread(paste0(metadata_folder, "feature_vital_sign.csv"))
 
 		feature_vital_sign_table <- list_table(feature_vital_sign, current_date,
  			vital_signs_merge=T, vital_signs_old=feature_vital_sign_raw)
@@ -216,6 +216,6 @@ feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zer
 
 
 	# save
-	write.csv(feature_vital_sign_table, paste0(output_folder, "feature_vital_sign.csv"), 
+	write.csv(feature_vital_sign_table, paste0(metadata_folder, "feature_vital_sign.csv"), 
 		row.names=F, na="")
 }
