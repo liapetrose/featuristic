@@ -43,15 +43,17 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		# load the raw features corresp to the feature_set, set key to outcome_id 
 		#------------------------------------------------------------------------#
 		print(paste0("Reading in features for ", feature_set))
-		assign(paste0(x, "_feature"), 
-			   setkey(as.data.table(readRDS(paste0(raw_feature_folder, x, "_feature_", feature_set_name, ".Rds"))), 
-			   	outcome_id), 
-			   envir = sys.frame(sys.parent(n=2)))
+		# assign(paste0(x, "_feature"), 
+		# 	   setkey(as.data.table(readRDS(paste0(raw_feature_folder, feature_set, "_feature_", feature_set_name, ".Rds"))), 
+		# 	   	outcome_id), 
+		# 	   envir = sys.frame(sys.parent(n=2)))
+		raw_feature <- setDT(readRDS(paste0(raw_feature_folder, feature_set, "_feature_", feature_set_name, ".Rds")), key = "outcome_id")
 
 		# merge the feature files with the cohort - merge on outcome_id & merge in 
 		# cohort extra columns
     	#----------------------------------------------------------------------------#
-    	pred_set <- raw_feature <- get(paste0(feature_set, "_feature")) # raw set of features of "feature_set" type [also called pred_set for legacy code reasons]
+    	# raw_feature <- get(paste0(feature_set, "_feature")) # raw set of features of "feature_set" type 
+    	pred_set <- raw_feature #[also called pred_set for legacy code reasons]
 
     	# ensure all cohort obs are accounted for in the raw feature set
 	    if(nrow(pred_set)!=nrow(cohort)) {
@@ -295,7 +297,8 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		# clear up memory
 		gc()
-		rm(pred_set, raw_feature, paste0(feature_set, "_feature"))
+		rm(pred_set, raw_feature)
+		# rm(pred_set, raw_feature, paste0(feature_set, "_feature"))
 	}
 
 	# perform modification
