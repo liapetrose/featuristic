@@ -278,7 +278,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			pred_set_missing     <- pred_set[, mget(c(missing_var))]
 			pred_set_non_missing <- pred_set[, mget(c(setdiff(names(pred_set), c(missing_var))))]
 		
-			pred_set_missing <- imputeMissings::impute(pred_set_missing)
+			pred_set_missing <- setDT(imputeMissings::impute(pred_set_missing))
 
 			pred_set <- cbind(pred_set_non_missing, pred_set_missing)
 
