@@ -42,9 +42,9 @@ feature_compilation <- function(cohort_path, control_path,
 	invisible(lapply (compile_list, function(feature_set) {
 		print(paste0("Reading in modified features for ", feature_set))
 		mod_feature <- setDT(readRDS(paste0(mod_feature_folder, feature_set, "_feature_set_mod_", feature_set_name, ".Rds")), key = "outcome_id")
-		mod_feature[, names(cohort_extra_col) := NULL, with = FALSE] # drop extraneous col prior to master feature merge
-		assign(paste0(feature_set, "_feature"), mod_feature)
-		rm(mod_feature)
+		mod_feature[, setdiff(names(cohort_extra_col), "outcome_id") := NULL, ] # drop extraneous col prior to master feature merge (i.e. all extra col except outcome_id)
+		assign(paste0(feature_set, "_feature"), mod_feature, envir = sys.frame(sys.parent(n=2)))
+		# rm(mod_feature)
 	}))
 
 	# merge the feature files with the cohort - merge on outcome_id & merge in 
