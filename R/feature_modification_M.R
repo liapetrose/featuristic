@@ -112,7 +112,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		}
 		
 		print(sprintf("columns that are deselected (%d)", length(unique(col_omit_select))))
-		deselect_col <- length(unique(col_omit_select))
+		deselect_col <<- length(unique(col_omit_select)) # define in global namespace so it can be used in stage III
 
 		pred_set[, as.character(col_omit_select) := NULL, ]
 
