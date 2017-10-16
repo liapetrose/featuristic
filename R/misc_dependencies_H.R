@@ -231,7 +231,7 @@ gagne_score_calc <- function(id_list, empi_list, date_list, dia_dt, timeframe_da
 # set_zero_na
 #----------------------------------------------------------------------------#
 
-set_zero_na <- function(dt, replace=NA) {
+set_zero_na <- function(dt, replace=NA, subset_col=names(dt)) {
 
   # purpose: 
   # replace (in place) zeros in DT with another value (e.g. NA)
@@ -244,7 +244,7 @@ set_zero_na <- function(dt, replace=NA) {
   # modified data.table (modified in place)
 
 
-  for (j in seq_len(ncol(dt)))
+  for (j in which(names(dt) %in% subset_col))
     set(dt, which(dt[[j]] %in% c(0)), j, replace)
 }
 
