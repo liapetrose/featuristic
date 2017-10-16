@@ -117,7 +117,7 @@ feature_initialisation <- function() {
 			print("outcome_id column type [integer] is correct")
 			if(is.Date(cohort$t0_date)){
 				print("t0_date column type [Date] is correct")
-				print("all key columns are of correct data type. proceeding with stage 1")
+				print("all key columns are of correct data type")
 			} else{
 				stop("t0_date column must be of type Date")
 			}

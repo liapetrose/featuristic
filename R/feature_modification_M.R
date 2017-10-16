@@ -132,10 +132,13 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		
 		# missingness imputation setup [column identification]
 	    #-----------------------------------------------------#
+	    ### ESSENTIALLY, WHICH INDICATOR VARIABLES DO WE NEED TO UN-IMPUTE?
 
 	    # keep in mind that stage 1 automatically performs missing => 0 imputation, so
 	    # it needs to be reversed in this stage if required by control parameters / user settings
 		if (miss_imp==FALSE) {
+			#### num_factor_var_mod is essentially a list of column names for which nothing has to be done -- these columns are not to be touched in the missing imputation code below; 
+			### this is consists of two sets of columns - a) numeric and factor type columns, because no missing imputation is required here, and b) indicator variable for which we want to retain the missing => 0 imputation that is performed by default in stage 1 (column names for which the control file specifies the need for imputation using the impute_var_cat variable)
 
 			if(is.na(impute_var_cat)) {
 			
@@ -144,22 +147,22 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 			} else {
 
+				# what subset should we be retaining the imputation for? -- i.e. which columns to not touch below in the set_zero_na()?
 				num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
 					names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-					grep("_day_to_last", names(pred_set),value=T))) # what subset should we be imputing for?
-
+					grep("_day_to_last", names(pred_set),value=T)))
 			}
 
 			print("indicator variables -> Non-Imputed")
 			print(setdiff(num_factor_var_mod, num_factor_var))
 
-		    write.csv(num_factor_var_mod, paste0(temp_folder, feature_set, "_num_factor_var_mod_raw.csv"), row.names=F)
+		    write.csv(num_factor_var_mod, paste0(temp_folder, feature_set, "_num_factor_var_mod.csv"), row.names=F)
 
 			indic_var_mod      <- setdiff(indic_var, num_factor_var_mod)
 			write.csv(indic_var_mod, paste0(temp_folder, feature_set, "_indic_var_mod.csv"), row.names=F)
 
 			indic_var          <- indic_var_mod
-			num_factor_var     <- num_factor_var_mod
+			num_factor_var     <- num_factor_var_mod # now num_factor_var stores the columns that are to not be touched in the imputation code below [all columns but these ones require the default imputation to be reversed]
 
 		} 
 
@@ -197,7 +200,11 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		# deal with 0,1 data (imputed dummy data)
 		#---------------------------------------------#
-		pred_set_zero      <- sapply(pred_set[, mget(indic_var)], function(y) sum(y==0, na.rm=T))
+		if(length(indic_var)>0){
+			pred_set_zero      <- sapply(pred_set[, mget(indic_var)], function(y) sum(y==0, na.rm=T))
+		} else{
+			pred_set_zero <- 0
+		}
 		pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=0)	
 
 
