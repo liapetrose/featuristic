@@ -134,118 +134,97 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			names(cohort_extra_col))) # vector of indicator variables (column names)
 		write.csv(indic_var, paste0(temp_folder, feature_set, "_indic_var.csv"), row.names=F)
 		
-		# missingness imputation setup [column identification]
-	    #-----------------------------------------------------#
-	    ### ESSENTIALLY, WHICH INDICATOR VARIABLES DO WE NEED TO UN-IMPUTE?
+		# Impose Missingness/Zeroness Thresholds > Drop Variables 
+		#-----------------------------------------------------#
+		#-----------------------------------------------------#
 
-	    # keep in mind that stage 1 automatically performs missing => 0 imputation, so
-	    # it needs to be reversed in this stage if required by control parameters / user settings
-		if (miss_imp==FALSE) {
-			#### num_factor_var_mod is essentially a list of column names for which nothing has to be done -- these columns are not to be touched in the missing imputation code below; 
-			### this is consists of two sets of columns - a) numeric and factor type columns, because no missing imputation is required here, and b) indicator variable for which we want to retain the missing => 0 imputation that is performed by default in stage 1 (column names for which the control file specifies the need for imputation using the impute_var_cat variable)
+		# Numeric variables > % NA
+		#-----------------------------------------------------#
+		if (length(num_factor_var)>0) {
 
-			if(is.na(impute_var_cat)) {
-			
-				## no steps
-				num_factor_var_mod <- num_factor_var # if no exceptions to imputation rule, retain all numeric and factor variables for the undoing of the imputation
-
-			} else {
-
-				# what subset should we be retaining the imputation for? -- i.e. which columns to not touch below in the set_zero_na()?
-				num_factor_var_mod <- setdiff(unique(c(num_factor_var, grep(impute_var_cat, 
-					names(pred_set), value=T))),  c(cohort_key_var, names(cohort_extra_col), 
-					grep("_day_to_last", names(pred_set),value=T)))
-			}
-
-			print("indicator variables -> Non-Imputed")
-			print(setdiff(num_factor_var_mod, num_factor_var))
-
-		    write.csv(num_factor_var_mod, paste0(temp_folder, feature_set, "_num_factor_var_mod.csv"), row.names=F)
-
-			indic_var_mod      <- setdiff(indic_var, num_factor_var_mod)
-			write.csv(indic_var_mod, paste0(temp_folder, feature_set, "_indic_var_mod.csv"), row.names=F)
-
-			indic_var          <- indic_var_mod
-			num_factor_var     <- num_factor_var_mod # now num_factor_var stores the columns that are to not be touched in the imputation code below [all columns but these ones require the default imputation to be reversed]
-
-		} 
-
-		# deal with 'missing data' (indicator variables)
-		#----------------------------------------------#
-		if (miss_imp==TRUE) {
-
-			## no steps - imputed (i.e. missing treated as 0) by default in stage 1
-
-		} else if (miss_imp==FALSE) {
-
-			# indic vars mod - -0 -> NA
-			#---------------------------------------------#
-			pred_set_non_num <- pred_set[,mget(setdiff(names(pred_set), num_factor_var))]
-			pred_set_num     <- pred_set[,mget(num_factor_var)]
-			set_zero_na(pred_set_non_num)
-
-			pred_set <- cbind(pred_set_non_num, pred_set_num)
-			
-			rm(pred_set_num)
-			rm(pred_set_non_num)
-			gc()
-
-		}
-
-		# deal with missing (numeric data)
-	   	#---------------------------------------------#
-	   	if (length(num_factor_var)>0) {
 			pred_set_missing  <- sapply(pred_set[, mget(c(num_factor_var))], function(y) sum(is.na(y)))
+
 		} else {
+
 			pred_set_missing  <- 0
+
 		}
+
 		pred_set_missing_perc <- perc(pred_set_missing, (nrow(pred_set)), digit=0)
 
-
-		# deal with 0,1 data (imputed dummy data)
+		# Indicator variables > % 0
 		#---------------------------------------------#
 		if(length(indic_var)>0){
+
 			pred_set_zero      <- sapply(pred_set[, mget(indic_var)], function(y) sum(y==0, na.rm=T))
+
 		} else{
+
 			pred_set_zero <- 0
+
 		}
 		pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=0)	
 
 
-		# identify 100% missing/0 observations
+		# Identify 100% NA/0 observations
 		#---------------------------------------------#
 		col_omit_missing <- pred_set_missing_perc[pred_set_missing_perc==100]
 		col_omit_zero    <- pred_set_zero_perc[pred_set_zero_perc == 100]	
-		
 
-		# deal with  missing  - ext (numeric data)
-	   	#---------------------------------------------#	
+
+
+		# Identify numeric variables to omit ('quant_missing_threshold')
+		#---------------------------------------------#
+
+		# loop over timeframes > impose timeframe specific threshold > identify numeric variables to omit
+		# NOTE: By default (regardless of threshold) > include features which are NA for 100% of observations (col_omit_missing) 
 		for (i in 1:length(name_ext_extended)) {
+			
 			temp <- pred_set_missing_perc[names(pred_set_missing_perc) %like% paste0(name_ext_extended[i], "$") & 
 				pred_set_missing_perc>quant_missing_threshold[[i]]]
-				col_omit_missing <- c(col_omit_missing, temp)
+			
+
+			col_omit_missing <- c(col_omit_missing, temp)
 		}
 
-
-		# deal with 0,1 data  - ext (imputed dummy data)
-		#---------------------------------------------#
-		for (i in 1:length(name_ext_extended)) {
-			temp <- pred_set_zero_perc[names(pred_set_zero_perc) %like% paste0(name_ext_extended[i], "$") & 
-				pred_set_zero_perc>indic_missing_threshold[[i]]]
-				col_omit_zero <- c(col_omit_zero, temp)
-		}
-
-
+		# ensure that no cohort variables are accidentally dropped
 		col_omit_missing_name <- names(col_omit_missing)
-		col_omit_zero_name    <- names(col_omit_zero)
+		col_omit_missing_name <- setdiff(col_omit_missing_name, c(cohort_key_var, names(cohort_extra_col)))
 
 		col_omit_missing 	  <- col_omit_missing[names(col_omit_missing) %in% col_omit_missing_name]
-		col_omit_zero         <- col_omit_zero[names(col_omit_zero) %in% col_omit_zero_name]
+		na_col                <- length(unique(col_omit_missing_name)) 
 
+		# Identify indicator variables to omit ('indic_missing_threshold')
+		#---------------------------------------------#
+
+		# loop over timeframes > impose timeframe specific threshold > identify indicator variables to omit
+		# NOTE: By default (regardless of threshold) > include features which are 0 for 100% of observations (col_omit_zero) 
+		for (i in 1:length(name_ext_extended)) {
+
+			temp <- pred_set_zero_perc[names(pred_set_zero_perc) %like% paste0(name_ext_extended[i], "$") & 
+				pred_set_zero_perc>indic_missing_threshold[[i]]]
+				
+			col_omit_zero <- c(col_omit_zero, temp)
+
+		}
+
+		# ensure that no cohort variables are accidentally dropped
+		col_omit_zero_name    <- names(col_omit_zero)
+		col_omit_zero_name    <- setdiff(col_omit_zero_name, c(cohort_key_var, names(cohort_extra_col)))
+
+		col_omit_zero         <- col_omit_zero[names(col_omit_zero) %in% col_omit_zero_name]
+		zero_col 			  <- length(unique(col_omit_zero_name))    
+
+		# Impose thresholds > Drop variables
+		#---------------------------------------------#
+
+		# collapse col_omit_missing_name (numeric variables to drop) & 
+		# col_omit_zero_name (indicator variables to drop)
 		col_omit <- unique(union(col_omit_missing_name, col_omit_zero_name))
 
+		# status
 		print(paste0("summary of feature subsetting for ", feature_set, " features:"))
-		cat(sprintf("columns that are ommitted - all / more than %s percent of data points missing (%d) [numeric/factor] (%s) \n// all / more than %s percent of data points 0 (%d) [indic] (%s) \n// total omissions (%d) \n", 
+		cat(sprintf("columns that are omitted - all / more than %s percent of data points missing (%d) [numeric/factor] (%s) \n// all / more than %s percent of data points 0 (%d) [indicator] (%s) \n// total omissions (%d) \n", 
 			paste0(paste0(quant_missing_threshold, "%"), collapse=" / "), 
 			length(unique(col_omit_missing_name)), paste0(name_ext_name_extended, collapse= " / "), 
 			paste0(paste0(indic_missing_threshold, "%"), collapse=" / "), 
@@ -253,42 +232,121 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			length(unique(col_omit))))
 
 
-		zero_col <- length(unique(col_omit_zero_name)) # call by reference so the variables can be used in stage III
-		na_col   <- length(unique(col_omit_missing_name)) # call by reference so the variables can be used in stage III
-	    	
-	    if (length(col_omit>0)) {
+		# omit			    	
+		if (length(col_omit>0)) {
 			pred_set[, c(col_omit):=NULL]
 		}
 
+
+		# status
 		obs_check(pred_set)
 
 
-	    # Median Imputation
-		# ----------------------------------------------------------------------------#
-		if (fill_na==TRUE) {
+		# Indicator Variable Imputation
+		#-----------------------------------------------------#
+		#-----------------------------------------------------#
 
-			missing <- sapply(pred_set[,mget(setdiff(names(pred_set),c(cohort_key_var,
-				names(cohort_extra_col))))], function(y) sum(is.na(y)))
+		### ESSENTIALLY, WHICH INDICATOR VARIABLES DO WE NEED TO UN-IMPUTE?
+		# keep in mind that stage 1 automatically performs missing => 0 imputation, so
+		# it needs to be reversed in this stage if required by control parameters / user settings
 
-			number_of_obs <- ncol(pred_set[,mget(setdiff(names(pred_set),c(cohort_key_var,
-				names(cohort_extra_col))))]) * 
-				nrow(pred_set[,mget(setdiff(names(pred_set),c(cohort_key_var,
-				names(cohort_extra_col))))])
-			impute_value_perc <- perc(sum(missing), number_of_obs)
 
-		    missing_var <- setdiff(names(missing[missing>0]), c(cohort_key_var, 
-		    	names(cohort_extra_col)))
+		# RETAIN THE IMPUTATION
+		if (miss_imp==TRUE) {
 
+			# no action required - keep imputation
+			indic_var_undo_imputation <- c()
+
+		# UNDO THE IMPUTATION
+		} else if (miss_imp==FALSE) {
+			
+
+			# determine which indicator variables to 'unimpute'
+			if(is.na(impute_var_cat)) {
+				
+				# undo the imputation for ALL indicator variables 
+				indic_var_undo_imputation    <- indic_var
+
+			} else {
+
+				# undo the imputation for a subset of indicator variables, i.e. retain the imputation for the 'impute_var_cat variables' 
+				indic_var_retain_imputation  <- grep(impute_var_cat, names(pred_set), value=T)
+				indic_var_undo_imputation    <- setdiff(indic_var, indic_var_retain_imputation)
+
+			}
+
+			# ensure that no cohort/numeric/day-to-last variables are accidentally 'unimputed'
+			indic_var_undo_imputation <- setdiff(indic_var_undo_imputation, c(cohort_key_var, names(cohort_extra_col), num_factor_var, 
+					grep("_day_to_last", names(pred_set),value=T)))
+
+		} 
+
+		# status & store the variables
+		print("indicator variables -> Non-Imputed")
+		print(indic_var_undo_imputation)
+
+		write.csv(indic_var_undo_imputation, paste0(metadata_folder, feature_set, "_indic_var_undo_imputation_", 
+			feature_set_name, ".csv"),row.names=F)
+
+		# undo the imputation
+		if (length(indic_var_undo_imputation)>0) {
+			set_zero_na(pred_set, subset_col=indic_var_undo_imputation)
+		}
+
+		# Numeric Variable Imputation (+ Unimputed Indicator Variables)
+		#-----------------------------------------------------#
+		#-----------------------------------------------------#
+
+		# NO IMPUTATION
+		if (fill_na==FALSE) {
+
+			# No actions
+
+		# MEDIAN IMPUTATION
+		} else if (fill_na==TRUE) {
+
+			## identify the set of variables affected by median imputation
+			if (indic_fill_na==FALSE) {
+
+				# median imputation > affect only numeric_factor variables
+				median_imp_col <- num_factor_var
+
+			} else if (indic_fill_na==TRUE) {
+
+				# median imputation > affect  numeric_factor variables + 'unimputed' indicator var
+				median_imp_col <- unique(c(num_factor_var, indic_var_undo_imputation))
+
+			} 
+
+			# number of observations that are missing for each affected variable 
+			missing <- sapply(pred_set[, mget(median_imp_col)], function(y) sum(is.na(y)))
+
+			# total number of observations
+			total_number_of_obs <- ncol(pred_set[,mget(median_imp_col)]) * 
+				nrow(pred_set[,mget(median_imp_col)])
+
+			# percentage of observations that are missing overall (for the affected columns)
+			impute_value_perc <- perc(sum(missing), total_number_of_obs)
+
+			# identify affected variables with at least one missing observations
+		    missing_var      <- names(missing[missing>0])
+
+		    # split feature set into features with/without missing observations
+		    # NOTE: 'pred_set_non_missing' > includes all non affected variables (whether or not these are missing)
 			pred_set_missing     <- pred_set[, mget(c(missing_var))]
 			pred_set_non_missing <- pred_set[, mget(c(setdiff(names(pred_set), c(missing_var))))]
-		
+
+			# perform median imputation
 			pred_set_missing <- setDT(imputeMissings::impute(pred_set_missing))
 
+			# combine 
 			pred_set <- cbind(pred_set_non_missing, pred_set_missing)
 
+			# status
 		    obs_check(pred_set)
 
 		}
+
 
 		# SAVE
 		#---------------------------------------------#
