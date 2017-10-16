@@ -253,8 +253,8 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			length(unique(col_omit))))
 
 
-		zero_col <- length(unique(col_omit_zero_name))
-		na_col   <- length(unique(col_omit_missing_name))
+		zero_col <<- length(unique(col_omit_zero_name)) # call by reference so the variables can be used in stage III
+		na_col   <<- length(unique(col_omit_missing_name)) # call by reference so the variables can be used in stage III
 	    	
 	    if (length(col_omit>0)) {
 			pred_set[, c(col_omit):=NULL]

@@ -206,7 +206,7 @@ feature_compilation <- function(cohort_path, control_path,
 	#                              STATS & OUTPUT                                 #
 	# ----------------------------------------------------------------------------#
 
-	# note: deselect_col is defined in stage 2 (feature_mod() in feature_modification_M.R) as a global var
+	# note: deselect_col, zero_col, na_col are defined in stage 2 (feature_mod() in feature_modification_M.R) as global var
 	feature_overview(pred_set_final = pred_set_final, pred_set = pred_set, deselect_col = deselect_col, na_col = na_col, zero_col = zero_col, date_col_table = date_col_table)
 
 }
