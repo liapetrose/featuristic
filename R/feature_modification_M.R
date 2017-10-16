@@ -244,7 +244,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		col_omit <- unique(union(col_omit_missing_name, col_omit_zero_name))
 
-		print("summary of feature subsetting for ", feature_set, " features:")
+		print(paste0("summary of feature subsetting for ", feature_set, " features:"))
 		cat(sprintf("columns that are ommitted - all / more than %s percent of data points missing (%d) [numeric/factor] (%s) \n// all / more than %s percent of data points 0 (%d) [indic] (%s) \n// total omissions (%d) \n", 
 			paste0(paste0(quant_missing_threshold, "%"), collapse=" / "), 
 			length(unique(col_omit_missing_name)), paste0(name_ext_name_extended, collapse= " / "), 
