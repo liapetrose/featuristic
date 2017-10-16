@@ -254,7 +254,7 @@ mic_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var, file_d
   setnames_check(mic, new=gsub("mean_temp", "mean", names(mic)))
  
   # add in additional var / drop unnecessary variables
-  mic[, ':='(mic_time_min=time_min, lab_time_max=time_max)]
+  mic[, ':='(mic_time_min=time_min, mic_time_max=time_max)]
 
   #-------------------------------------------------------------------------------#
   # CLEAR MEMORY & RETURN FEATURE SET
