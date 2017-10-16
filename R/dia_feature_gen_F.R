@@ -293,7 +293,7 @@
 
   # format variables
   dia <- feature_type_format(dt=dia, day_to_last=timeframe_day_to_last, 
-    num_feature_pattern=NA, int_feature_pattern="...", factor_feature_pattern=NA)
+    num_feature_pattern="dia_dia.score_gagne..score", int_feature_pattern="...", factor_feature_pattern=NA)
 
   # add in additional var / drop unnecessary variables
   dia[, ':='(dia_time_min=time_min, dia_time_max=time_max)]
