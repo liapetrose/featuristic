@@ -76,8 +76,12 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		# ensure that time_min, time_max variables are included in cohort_extra_col
 		#----------------------------------------------------------------------------#
-		cohort_extra_col <- cbind(cohort_extra_col, pred_set[, 
-			mget(grep("_time_min|_time_max", names(pred_set), value=T))])
+		# if the feature set includes non time_min time_max cols, ensure they are included in cohort_extra_col
+		if(length(grep("_time_min|_time_max", names(pred_set), value=T)) > 0){
+			cohort_extra_col <- cbind(cohort_extra_col, pred_set[, mget(grep("_time_min|_time_max", names(pred_set), value=T))])
+		} else{
+			print(paste0("No time_min|time_max cols found in the ", feature_set, " feature set."))
+		}
 
 		raw_feature_coll <- feature_coll(pred_set)
 
