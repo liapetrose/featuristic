@@ -112,7 +112,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		}
 		
 		print(sprintf("columns that are deselected (%d)", length(unique(col_omit_select))))
-		deselect_col <<- length(unique(col_omit_select)) # define in global namespace so it can be used in stage III
+		deselect_col <- length(unique(col_omit_select)) # define in global namespace so it can be used in stage III
 
 		pred_set[, as.character(col_omit_select) := NULL, ]
 
@@ -253,8 +253,8 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			length(unique(col_omit))))
 
 
-		zero_col <<- length(unique(col_omit_zero_name)) # call by reference so the variables can be used in stage III
-		na_col   <<- length(unique(col_omit_missing_name)) # call by reference so the variables can be used in stage III
+		zero_col <- length(unique(col_omit_zero_name)) # call by reference so the variables can be used in stage III
+		na_col   <- length(unique(col_omit_missing_name)) # call by reference so the variables can be used in stage III
 	    	
 	    if (length(col_omit>0)) {
 			pred_set[, c(col_omit):=NULL]
@@ -310,10 +310,20 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		gc()
 		rm(pred_set, raw_feature)
 		# rm(pred_set, raw_feature, paste0(feature_set, "_feature"))
+
+		# return a list of the 3 var needed in stage 3 so they can be saved
+		return(c(deselect_col, na_col, zero_col))
 	}
 
 	# perform modification
-	lapply(compile_list, feature_mod)
+	deselect_na_zero_col_length_list <- invlapply(compile_list, feature_mod)
+	deselect_na_zero_col_length_vec  <- Reduce(`+`, deselect_na_zero_col_length_list)
+
+	# save the length of deselect col, na col and zero col for use in stage 3
+	fwrite(data.table(deselect_col = deselect_na_zero_col_length_vec[1],
+					  na_col       = deselect_na_zero_col_length_vec[2],
+					  zero_col     = deselect_na_zero_col_length_vec[3]),
+	paste0(temp_folder, "feature_mod_", feature_set_name, "_deselect_na_zero_col_length.csv"))
 }
 
 #----------------------------------------------------------------------------#
