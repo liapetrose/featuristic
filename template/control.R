@@ -297,13 +297,15 @@ leak_list$leak_ed_day  					<- NA
 miss_imp               <- TRUE                                                        #[MODIFY]
 impute_var_cat         <- "dia_dia.count"
 
-## imputation - numeric variables
-# specify whether to impute numeric variables (e.g. a missing lab value) according to the
-# specified median imputation procedure ("fill_na_method") (fill_na=TRUE)
-## > supported imputation procedures: "median_imputation"
+## imputation - numeric variables [only median imputation is possible here]
+# specify whether to impute missing variables (e.g. a missing lab value) using median 
+# imputation (fill_na=TRUE). By default (indic_fill_na=FALSE) only numeric variables 
+# are imputed, setting indic_fill_na=TRUE ensures that missing indicator variables (i.e.
+# indicator variables which have not been imputed with 0) are also imputed *WITH THE MEDIAN* 
+# indic_fill_na <- TRUE **WILL DO NOTHING** UNLESS fill_na is ALSO TRUE
 
 fill_na                <- FALSE                                                        #[MODIFY]
-fill_na_method         <- "median_imputation"
+indic_fill_na          <- FALSE # if unimputed indicators need to be median imputed, set TRUE
 
 # [E] additional feature construction settings
 # * (!) NOTE - these settings should generally be left at their default value
