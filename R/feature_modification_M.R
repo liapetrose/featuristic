@@ -316,7 +316,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 	}
 
 	# perform modification
-	deselect_na_zero_col_length_list <- invlapply(compile_list, feature_mod)
+	deselect_na_zero_col_length_list <- inv_lapply(compile_list, feature_mod)
 	deselect_na_zero_col_length_vec  <- Reduce(`+`, deselect_na_zero_col_length_list)
 
 	# save the length of deselect col, na col and zero col for use in stage 3
