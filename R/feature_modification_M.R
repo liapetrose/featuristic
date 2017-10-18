@@ -114,7 +114,9 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		print(sprintf("columns that are deselected (%d)", length(unique(col_omit_select))))
 		deselect_col <- length(unique(col_omit_select)) # define in global namespace so it can be used in stage III
 
-		pred_set[, as.character(col_omit_select) := NULL, ]
+		if (length(col_omit_select)>0) {
+			pred_set[, as.character(col_omit_select) := NULL, ]
+		}
 
 		obs_check(pred_set)
 
@@ -163,6 +165,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			pred_set_zero <- 0
 
 		}
+		
 		pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=0)	
 
 
@@ -170,8 +173,6 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		#---------------------------------------------#
 		col_omit_missing <- pred_set_missing_perc[pred_set_missing_perc==100]
 		col_omit_zero    <- pred_set_zero_perc[pred_set_zero_perc == 100]	
-
-
 
 		# Identify numeric variables to omit ('quant_missing_threshold')
 		#---------------------------------------------#
@@ -182,18 +183,14 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			
 			temp <- pred_set_missing_perc[names(pred_set_missing_perc) %like% paste0(name_ext_extended[i], "$") & 
 				pred_set_missing_perc>quant_missing_threshold[[i]]]
-			
 
-			col_omit_missing <- c(col_omit_missing, temp)
+			col_omit_missing  <- c(col_omit_missing, temp)
+
 		}
-
-		# ensure that no cohort variables are accidentally dropped
+		
 		col_omit_missing_name <- names(col_omit_missing)
-		col_omit_missing_name <- setdiff(col_omit_missing_name, c(cohort_key_var, names(cohort_extra_col)))
-
-		col_omit_missing 	  <- col_omit_missing[names(col_omit_missing) %in% col_omit_missing_name]
 		na_col                <- length(unique(col_omit_missing_name)) 
-
+		
 		# Identify indicator variables to omit ('indic_missing_threshold')
 		#---------------------------------------------#
 
@@ -210,9 +207,6 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		# ensure that no cohort variables are accidentally dropped
 		col_omit_zero_name    <- names(col_omit_zero)
-		col_omit_zero_name    <- setdiff(col_omit_zero_name, c(cohort_key_var, names(cohort_extra_col)))
-
-		col_omit_zero         <- col_omit_zero[names(col_omit_zero) %in% col_omit_zero_name]
 		zero_col 			  <- length(unique(col_omit_zero_name))    
 
 		# Impose thresholds > Drop variables
@@ -237,6 +231,10 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			pred_set[, c(col_omit):=NULL]
 		}
 
+
+		# update numeric/indicator feature lists
+		num_factor_var <- num_factor_var[num_factor_var %in% names(pred_set)]
+		indic_var      <- indic_var[indic_var %in% names(pred_set)]
 
 		# status
 		obs_check(pred_set)
@@ -300,7 +298,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		# NO IMPUTATION
 		if (fill_na==FALSE) {
 
-			# No actions
+			median_imp_col <- c()
 
 		# MEDIAN IMPUTATION
 		} else if (fill_na==TRUE) {
@@ -316,7 +314,22 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 				# median imputation > affect  numeric_factor variables + 'unimputed' indicator var
 				median_imp_col <- unique(c(num_factor_var, indic_var_undo_imputation))
 
-			} 
+			}
+		
+		} 
+
+		# status & store the variables
+		print("numeric/factor/indicator variables -> Median-Imputed")
+		print(median_imp_col)
+
+		write.csv(median_imp_col, paste0(metadata_folder, feature_set, "_missing_var_", 
+			feature_set_name, ".csv"),row.names=F)
+
+		if (length(median_imp_col)==0) {
+
+			impute_value_perc <- 0
+
+		} else {
 
 			# number of observations that are missing for each affected variable 
 			missing <- sapply(pred_set[, mget(median_imp_col)], function(y) sum(is.na(y)))
@@ -329,24 +342,27 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			impute_value_perc <- perc(sum(missing), total_number_of_obs)
 
 			# identify affected variables with at least one missing observations
-		    missing_var      <- names(missing[missing>0])
+		   	missing_var      <- names(missing[missing>0])
 
-		    # split feature set into features with/without missing observations
-		    # NOTE: 'pred_set_non_missing' > includes all non affected variables (whether or not these are missing)
-			pred_set_missing     <- pred_set[, mget(c(missing_var))]
-			pred_set_non_missing <- pred_set[, mget(c(setdiff(names(pred_set), c(missing_var))))]
+			if (length(missing_var)>0) {
+		   	
+		   		# split feature set into features with/without missing observations
+		   		# NOTE: 'pred_set_non_missing' > includes all non affected variables (whether or not these are missing)
+				pred_set_missing     <- pred_set[, mget(c(missing_var))]
+				pred_set_non_missing <- pred_set[, mget(c(setdiff(names(pred_set), c(missing_var))))]
 
-			# perform median imputation
-			pred_set_missing <- setDT(imputeMissings::impute(pred_set_missing))
+				# perform median imputation (factors > mode-imputation)
+				pred_set_missing <- setDT(imputeMissings::impute(pred_set_missing, method="median/mode"))
 
-			# combine 
-			pred_set <- cbind(pred_set_non_missing, pred_set_missing)
-
-			# status
-		    obs_check(pred_set)
-
+				# combine 
+				pred_set <- cbind(pred_set_non_missing, pred_set_missing)
+			
+			}	
 		}
 
+		
+		# status
+		obs_check(pred_set)
 
 		# SAVE
 		#---------------------------------------------#
@@ -367,7 +383,6 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 		# clear up memory
 		gc()
 		rm(pred_set, raw_feature)
-		# rm(pred_set, raw_feature, paste0(feature_set, "_feature"))
 
 		# return a list of the 3 var needed in stage 3 so they can be saved
 		return(c(deselect_col, na_col, zero_col))
