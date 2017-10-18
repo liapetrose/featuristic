@@ -120,7 +120,8 @@ if ('3' %in% stage_vector) {
 	feature_compilation(cohort_path=cohort_path, control_path=control_path,
  		data_def_path=data_def_path, feature_path=feature_path,
  		feature_set_id=feature_set_id,
- 		feature_set_prefix=feature_set_prefix)
+ 		feature_set_prefix=feature_set_prefix, 
+ 		overview_stat=TRUE)
 
 }
 

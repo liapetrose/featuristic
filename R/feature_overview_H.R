@@ -151,10 +151,10 @@ feature_overview <- function(pred_set_final, pred_set, deselect_col, na_col, zer
     															collapse=" - "), na_col)	
     feature_vital_sign$indic_missing_threshold            <- sprintf("%s (omit: %d)", paste0(unlist(indic_missing_threshold),
     															collapse=" - "), zero_col)
-    feature_vital_sign$missing_imputation                 <- ifelse(fill_na, sprintf("%s (method: %s / perc.values imputed: %f)", 
-    															as.character(fill_na),
-     															as.character(fill_na_method), as.numeric(impute_value_perc)), 
-    															sprintf("Missing imputation disabled\n."))	
+    # feature_vital_sign$missing_imputation                 <- ifelse(fill_na, sprintf("%s (method: %s / perc.values imputed: %f)", 
+    # 															as.character(fill_na),
+    #  															as.character("median_imputation"), as.numeric(impute_value_perc)), 
+    # 															sprintf("Missing imputation disabled\n."))	
 
   
     list_space("feature_vital_sign")

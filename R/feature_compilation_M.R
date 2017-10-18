@@ -11,11 +11,13 @@
 #' @param feature_path path to feature_selection.csv file which provides options to select variables for FC process (character)
 #' @param feature_set_id suffix indicating an id number or index number for this cohort's feature set (if multiple attempts were made with the same cohort, for example) (character)
 #' @param feature_set_prefix prefix identifying the cohort / feature set that is used in the output file names for all datasets / output created as part of the FC process (character)
+#' @param overview_stat whether to generate overview statistics (logical)
 #' @return
 #' @examples
 
 feature_compilation <- function(cohort_path, control_path, 
-	data_def_path, feature_path, feature_set_id, feature_set_prefix) {
+	data_def_path, feature_path, feature_set_id, feature_set_prefix, 
+	overview_stat=TRUE) {
 
 	
 	#----------------------------------------------------------------------------#
@@ -76,14 +78,14 @@ feature_compilation <- function(cohort_path, control_path,
 
 	gc()
 
-	# ## ensure that no special characters in names
-	# setnames(pred_set, gsub("[^a-zA-Z_\\.0-9]", "_", names(pred_set)))
+	# store columns which are not be dropped
+	do_not_drop_col <- unique(c(names(cohort_extra_col), cohort_key_var))
 
 	#----------------------------------------------------------------------------#
 	#                        FORMAT THE FEATURES                                 #
 	#----------------------------------------------------------------------------#
 
-	# Store the unformatted column names & dates
+	# Process date variables
 	# ----------------------------------------------------------------------------#
 	var_name_raw   <- copy(names(pred_set))
 	var_name_final <- copy(names(pred_set))
@@ -102,75 +104,110 @@ feature_compilation <- function(cohort_path, control_path,
 		as.IDate(max(pred_set$t0_date), "%Y-%m-%d")))), use.names=T)
 
 	print(date_col_table)
-
-    pred_set <- pred_set[, !(c(which(sapply(pred_set, function(x) 
-		class(x)[1]) %in% c("Date")))), with=F]
 	
-	var_name_final <- copy(names(pred_set))
+	drop_date_col  <- names(pred_set)[which(sapply(pred_set, function(x) class(x)[1]) 
+		%in% c("Date"))]
+	drop_date_col  <- setdiff(drop_date_col, do_not_drop_col)
+    
+    pred_set       <- pred_set[, c(drop_date_col):=NULL]
+	
 
 	# Format the column names
 	# ----------------------------------------------------------------------------#
+	var_name_final       <- copy(names(pred_set))
+
+	## subset to columns that are to be rename
+	var_name_rename_orig <- setdiff(var_name_final, do_not_drop_col)
+	var_name_rename      <- copy(var_name_rename_orig)
 
 	# main timeframes
 	for (i in name_ext) {
-	   var_name_final <- gsub(paste0(gsub("_", "", i), "$"), get(paste0("timeframe", i, "_name")),
-	   	var_name_final)
+	   var_name_rename <- gsub(paste0(gsub("_", "", i), "$"), get(paste0("timeframe", i, "_name")),
+	   	var_name_rename)
 	}
 
 	# max timeframe
-	var_name_final <- gsub("(?<!time)_max$", "_timeframe_max", var_name_final, perl=T)
+	var_name_rename <- gsub("(?<!time)_max$", "_timeframe_max", var_name_rename, perl=T)
 
 	# difference timeframes
 	for (i in 1:length(name_ext)) {
-	   var_name_final <- gsub(paste0(name_ext[i], name_ext[i+1], "_diff", "$"), 
+	   var_name_rename <- gsub(paste0(name_ext[i], name_ext[i+1], "_diff", "$"), 
 	   	paste0("_timeframe_diff",gsub("timeframe", "", name_ext_name[i]), 
-	   		gsub("timeframe", "", name_ext_name[i+1])), var_name_final)
+	   		gsub("timeframe", "", name_ext_name[i+1])), var_name_rename)
 	}
 
-	var_name_final <- gsub("max_diff$", "timeframe_diff_max", var_name_final)
+	var_name_rename <- gsub("max_diff$", "timeframe_diff_max", var_name_rename)
     
     # ensure no duplicates
-    dupl <- which(var_name_final %in% var_name_final[duplicated(var_name_final)])
+    dupl <- which(var_name_rename %in% var_name_rename[duplicated(var_name_rename)])
     for (i in dupl) {
-			var_name_final[i] <-  gsub("_timeframe", 
-				paste0( i, "_timeframe"), var_name_final[i])
+			var_name_rename[i] <-  gsub("_timeframe", 
+				paste0( i, "_timeframe"), var_name_rename[i])
     }
 	
     # rename
-    setnames(pred_set, var_name_final)
+    setnames(pred_set, var_name_rename_orig, var_name_rename)
 
     # add 'var' to identify features
-	setnames(pred_set, setdiff(names(pred_set), c(cohort_key_var, names(cohort_extra_col))),
-	 paste0("var_", setdiff(names(pred_set), c(cohort_key_var, names(cohort_extra_col)))))
+	setnames(pred_set, setdiff(names(pred_set), do_not_drop_col),
+	 paste0("var_", setdiff(names(pred_set), do_not_drop_col)))
+	
+    # remove final _
+    var_name_final       <- copy(names(pred_set))
+    
+    var_name_rename_orig <- setdiff(var_name_final, do_not_drop_col)
+    var_name_rename      <- gsub("_$", "", var_name_rename_orig)
+
+	setnames(pred_set, var_name_rename_orig,  var_name_rename)
+	
+	# format names
+	var_name_final       <- copy(names(pred_set))
+    
+    var_name_rename_orig <- setdiff(var_name_final, do_not_drop_col)
+    var_name_rename      <- make.names(var_name_rename_orig)
+
+	setnames(pred_set, var_name_rename_orig,  var_name_rename)
+
+	# store the new names
 	var_name_final <- copy(names(pred_set))
 
-    # remove final _
-    var_name_final <- gsub("_$", "", var_name_final)
-	setnames(pred_set,var_name_final)
-	
+
 	# Reformat - integer / numeric
 	# ----------------------------------------------------------------------------#
 
 	# cast the factor columns such that factors are converted to independent indicator variables
 	factor_var <- names(pred_set)[which(sapply(pred_set, function(x) class(x)[1]) %in% c("factor"))]
+	factor_var <- setdiff(factor_var, do_not_drop_col)
 	pred_set   <- one_hot_encoding(pred_set, factor_var)
 
-    # format names
-	# ----------------------------------------------------------------------------#
-	setnames(pred_set, make.names(names(pred_set)))
 
-    # Subset - omit date var & omit max var
+    # Subset - omit date var & omit max var > pred_set_final
 	# ----------------------------------------------------------------------------#
-	pred_set_final <- pred_set[, mget(setdiff(names(pred_set), 
-		grep("_time_min|_time_max|_timeframe_max|timeframe_diff_max", 
-		names(pred_set), value=T)))]
-
-	final_feature_coll <- feature_coll(pred_set_final)
+	drop_col             <- setdiff(grep("_time_min|_time_max|_timeframe_max|timeframe_diff_max", 
+							names(pred_set), value=T), do_not_drop_col)
+	pred_set_final       <- pred_set[, mget(setdiff(names(pred_set), drop_col))]
+	final_feature_coll   <- feature_coll(pred_set_final)
 
 	# rename
-    var_name_final <- gsub("var_([^_]*_)(.*)$", "var_\\2", names(pred_set_final))
-    var_name_final <- gsub("_$", "", var_name_final)
-    setnames(pred_set_final, var_name_final)
+	var_name_final       <- copy(names(pred_set_final))
+    
+    var_name_rename_orig <- setdiff(var_name_final, do_not_drop_col)
+    var_name_rename      <- gsub("var_([^_]*_)(.*)$", "var_\\2", var_name_rename_orig)
+    var_name_rename      <- gsub("_$", "", var_name_rename)
+
+	setnames(pred_set_final, var_name_rename_orig,  var_name_rename)
+
+	# Column order & save
+	# ----------------------------------------------------------------------------#
+
+    # set the column order
+    cohort_key_var_final   <- cohort_key_var 								         # should have kept all
+    cohort_extra_col_final <- setdiff(names(cohort_extra_col), cohort_key_var_final) # should have kept all
+    
+	setcolorder(pred_set, c(cohort_key_var_final, cohort_extra_col_final, 
+		setdiff(names(pred_set), c(cohort_key_var_final, cohort_extra_col_final))))
+	setcolorder(pred_set_final, c(cohort_key_var_final, cohort_extra_col_final, 
+		setdiff(names(pred_set_final), c(cohort_key_var_final, cohort_extra_col_final))))
 
 	write.csv(final_feature_coll, paste0(metadata_folder, "final_feature_coll_", 
 		feature_set_name, "_", current_date, ".csv"), row.names=F)
@@ -182,7 +219,6 @@ feature_compilation <- function(cohort_path, control_path,
 	
 	# final variable overview
 	# ----------------------------------------------------------------------------#
-
 	pred_set_zero             <- sapply(pred_set_final, function(y) sum(y==0, na.rm=T))
 	pred_set_zero_perc   	  <- perc(pred_set_zero, (nrow(pred_set)), digit=1)	
 
@@ -200,20 +236,24 @@ feature_compilation <- function(cohort_path, control_path,
 	write.csv(final_var_dt, file = paste0(metadata_folder, 
 		"pred_set_final_var_name_", feature_set_name, ".csv"),row.names=F)
 
-
 	# ----------------------------------------------------------------------------#
 	#                              STATS & OUTPUT                                 #
 	# ----------------------------------------------------------------------------#
 
-	# note: deselect_col, zero_col, na_col are defined in stage 2 and read in using the following data.table
-	deselect_na_zero_col_length <- fread(paste0(temp_folder, "feature_mod_", feature_set_name, "_deselect_na_zero_col_length.csv"))
-	feature_overview(pred_set_final = pred_set_final, 
+	if (overview_stat==TRUE) {
+	
+		print("Generate overview statistics")
+
+		# note: deselect_col, zero_col, na_col are defined in stage 2 and read in using the following data.table
+		deselect_na_zero_col_length <- fread(paste0(temp_folder, "feature_mod_", feature_set_name, "_deselect_na_zero_col_length.csv"))
+		feature_overview(pred_set_final = pred_set_final, 
 					 pred_set = pred_set, 
 					 deselect_col = deselect_na_zero_col_length[, deselect_col], 
 					 na_col = deselect_na_zero_col_length[, na_col], 
 					 zero_col = deselect_na_zero_col_length[, zero_col], 
 					 date_col_table = date_col_table)
 
+	}
 }
 
 #----------------------------------------------------------------------------#
