@@ -87,6 +87,8 @@ feature_compilation <- function(cohort_path, control_path,
 
 	# Process date variables
 	# ----------------------------------------------------------------------------#
+	print("Process all date variables")
+
 	var_name_raw   <- copy(names(pred_set))
 	var_name_final <- copy(names(pred_set))
 	
@@ -114,6 +116,8 @@ feature_compilation <- function(cohort_path, control_path,
 
 	# Format the column names
 	# ----------------------------------------------------------------------------#
+	print("Finalize the naming of all features")
+
 	var_name_final       <- copy(names(pred_set))
 
 	## subset to columns that are to be rename
@@ -174,6 +178,7 @@ feature_compilation <- function(cohort_path, control_path,
 
 	# Reformat - integer / numeric
 	# ----------------------------------------------------------------------------#
+	print("Process factor variables")
 
 	# cast the factor columns such that factors are converted to independent indicator variables
 	factor_var <- names(pred_set)[which(sapply(pred_set, function(x) class(x)[1]) %in% c("factor"))]

@@ -673,6 +673,7 @@ setnames_check <- function(..., old=NA,new) {
 
 one_hot_encoding <- function (dt, var_list, drop = FALSE) {
 
+    # options
     contr.onehot = function(n, contrasts, sparse = FALSE) {
         contr.sum(n = n, contrasts = FALSE, sparse = sparse)
     }
@@ -681,6 +682,25 @@ one_hot_encoding <- function (dt, var_list, drop = FALSE) {
     options(contrasts = c("contr.onehot", "contr.onehot"))
     options(na.action = "na.pass")
 
+    # ensure that at least two levels (otherwise crash)
+    level_count <- sapply(var_list, function(x) 
+      length(unique(dt[, get(x)])))
+    var_list_single    <- var_list[level_count==1]
+    var_list           <- var_list[level_count>=2]
+
+
+    # process factors (single-level) [rename & set to 1]
+    inv_lapply(var_list_single, function(x) {
+
+      value_tmp <- as.character(unique(dt[, get(x)]))
+
+      # rename & set to 1
+      dt[, c(x):=NULL]
+      dt[, c(paste0(x, "_", value_tmp)):=as.integer(1)]
+
+    })
+
+    # process factors (multi-level) [cast]
     dt_factor <- dt[, c(var_list), with=F]
 
     dt_factor <- lapply(var_list, function(x) {
@@ -718,7 +738,6 @@ one_hot_encoding <- function (dt, var_list, drop = FALSE) {
     na_col   <- grep("_NA$", names(dt_factor), value=T)
     dt_factor[, c(na_col):=NULL]
 
-    dt_factor[,]
     # format
     dt_factor[, `:=`(names(dt_factor), lapply(.SD, function(x) as.integer(x)))]
     dt_non_factor <- dt[, c(setdiff(names(dt), var_list)), with=F]
