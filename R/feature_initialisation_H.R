@@ -135,8 +135,7 @@ feature_initialisation <- function() {
 	
 	# store 'extra' variables (for later merging) 
 	# ----------------------------------------------- #
-	cohort_extra_col <<- cohort[, mget(c("outcome_id", setdiff(names(cohort), 
-		cohort_key_var)))]
+	cohort_extra_col <<- cohort[, c("outcome_id", setdiff(names(cohort), cohort_key_var)), with = FALSE]
 	
 	cat(sprintf("extra cohort columns: %s", 
 		paste0(c("\n", names(cohort_extra_col),"\n"),collapse='\n')))
