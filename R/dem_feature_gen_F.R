@@ -37,9 +37,11 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   ## SAMPLE SIZE CHECK #1
   assert("observations for cohort patients", nrow(dem)>0)
 
-  # subset to smaller sample for testing if so specified in control file
+  # subset to smaller sample (if test_mode==TRUE)
   if (test_mode==TRUE) {
-    store_shorten_file("dem")
+    
+    dem <- dem[1:min(test_row, nrow(dem))]
+
   }
 
   # Date Formatting 
