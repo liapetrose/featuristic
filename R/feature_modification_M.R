@@ -152,7 +152,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		}
 
-		pred_set_missing_perc <- perc(pred_set_missing, (nrow(pred_set)), digit=3)
+		pred_set_missing_perc <- perc(pred_set_missing, (nrow(pred_set)), digit=6)
 
 		# Indicator variables > % 0
 		#---------------------------------------------#
@@ -166,7 +166,7 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 
 		}
 		
-		pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=3)	
+		pred_set_zero_perc <- perc(pred_set_zero, (nrow(pred_set)), digit=6)	
 
 
 		# Identify 100% NA/0 observations
