@@ -183,7 +183,10 @@ feature_compilation <- function(cohort_path, control_path,
 	# cast the factor columns such that factors are converted to independent indicator variables
 	factor_var <- names(pred_set)[which(sapply(pred_set, function(x) class(x)[1]) %in% c("factor"))]
 	factor_var <- setdiff(factor_var, do_not_drop_col)
-	pred_set   <- one_hot_encoding(pred_set, factor_var)
+	# only do this if there are non zero number of factor var
+	if(length(factor_var) > 0){
+		pred_set   <- one_hot_encoding(pred_set, factor_var)
+	}
 
 
     # Subset - omit date var & omit max var > pred_set_final
