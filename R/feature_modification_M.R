@@ -72,7 +72,10 @@ feature_modification <- function(cohort_path, control_path, data_def_path, featu
 			in cohort: %d", nrow(pred_set), nrow(cohort)))
 
 		## ensure that no special characters in names
-		setnames(pred_set, gsub("[^a-zA-Z_\\.0-9]", "_", names(pred_set)))
+		print("Ensuring no special characters in feature names -- ")
+		print(sprintf("%d unique raw feature names", length(unique(names(pred_set)))))
+		setnames(pred_set, gsub("[^a-zA-Z_\\.0-9]", "._", names(pred_set)))
+		print(sprintf("%d unique modified feature names", length(unique(names(pred_set)))))
 
 		# ensure that time_min, time_max variables are included in cohort_extra_col
 		#----------------------------------------------------------------------------#
