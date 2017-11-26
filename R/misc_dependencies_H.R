@@ -732,7 +732,7 @@ one_hot_encoding <- function (dt, var_list, drop = FALSE) {
     })
 
     dt_factor <- data.frame(dt_factor)
-    dt_factor <- as.data.table(dt_factor)
+    dt_factor <- setDT(dt_factor)
 
     # drop factor columns which end in NA
     na_col   <- grep("_NA$", names(dt_factor), value=T)
@@ -740,18 +740,21 @@ one_hot_encoding <- function (dt, var_list, drop = FALSE) {
 
     # format
     dt_factor[, `:=`(names(dt_factor), lapply(.SD, function(x) as.integer(x)))]
-    dt_non_factor <- dt[, c(setdiff(names(dt), var_list)), with=F]
+    gc()
     
     # check that row count aligns
-    if (nrow(dt_factor) != nrow(dt_non_factor)) 
-      print("warning - one hot encoding () - it appears that rows are dropped during the conversion")
+    if (nrow(dt_factor) != nrow(dt)){print("warning - one hot encoding () - it appears that rows are dropped during the conversion")}
 
-    dt_temp <- data.table(data.frame(dt_non_factor, dt_factor))
+    # drop factor columns from original dt, bind one-hot encoded back in, return new dt
+    dt[, (var_list):=NULL, ]
+    dt_new <- cbind(dt, dt_factor)
+    rm(dt_factor)
+    rm(dt)
 
     options(na.action = current.na.action)
 
     # return
-    return(dt_temp)
+    return(dt_new)
 }
 
 #----------------------------------------------------------------------------#

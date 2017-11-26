@@ -4,7 +4,7 @@
 
 ## job parameters
 queue=big-multi
-mem_res=100000
+mem_res=225000
 mem_lim=500000
 core_multi=4
 
