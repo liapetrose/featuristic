@@ -671,7 +671,7 @@ setnames_check <- function(..., old=NA,new) {
 # one_hot_encoding
 #----------------------------------------------------------------------------#
 
-one_hot_encoding <- function (dt, var_list, drop = FALSE) {
+one_hot_encoding <- function(dt, var_list, drop = FALSE) {
 
     # options
     contr.onehot = function(n, contrasts, sparse = FALSE) {
