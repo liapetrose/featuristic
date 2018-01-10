@@ -28,6 +28,7 @@ install_github("hadley/devtools")
 **Development**
 
 - To contribute:
+
 ```
 # 1. Clone the repo
 git clone https://github.com/sysmedlab/featuristic.git
