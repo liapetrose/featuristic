@@ -6,7 +6,8 @@
 library("devtools")  
 install_github("sysmedlab/featuristic",dependencies = TRUE)    
 library(featuristic)
-```  
+```
+
 **Documentation**
 - See https://docs.google.com/document/d/1isXpxsgUR-WMvgUvj-3lhcM4W2qvfuZOUX04ELjX9Cc/edit?usp=sharing 
 for a step-by-step guide on how to use the package
@@ -14,17 +15,18 @@ for a step-by-step guide on how to use the package
 the functions (and data sets) included in the package 
 
 
-````
 **Datasets**  
 - *gagne_code*: Icd9 code - gagne comorbidity category crosswalk (http://scholar.harvard.edu/gagne/software/combined-comorbidity-score) [* note the crosswalk included in the package includes gagne categories that are assigned a 0 weight (these are not included in the here referenced, publicly available version of the crosswalk)]
 - *zip_class*: US zip code - city/state crosswalk
 
 **Miscellaneous Notes**
 - Requires the newest version of devtools (https://github.com/hadley/devtools) to be installed
+
 ```
 library(devtools)  
 install_github("hadley/devtools")
 ```
+
 **Development**
 
 - To contribute:
