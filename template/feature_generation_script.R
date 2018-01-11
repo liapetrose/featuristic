@@ -12,7 +12,7 @@ stage_vector <- unlist(strsplit(stage, split = '')) # break stage into a vector 
 
 # Set the working directory
 #---------------------------------------
-wd_path <- "/data/zolab/featuristic/"
+wd_path <- "/data/zolab/sl/featuristic_dev/"
 
 # [0-A] Load the package
 #---------------------------------------
@@ -41,7 +41,7 @@ source(paste0(package_path,"featuristic/package_management/load_package_locally.
 ### "test_set  " - a binary variable indicating whether a given observation belongs to the
 ###                'testing' (1) / 'training' (0) set
 
-cohort_path           <- paste0(wd_path,"test_project/test_cohort.Rds")
+cohort_path           <- paste0(wd_path,"other/cohort.Rds")
 
 # [2] Specify the paths to the key control inputs 
 #---------------------------------------
@@ -49,14 +49,14 @@ cohort_path           <- paste0(wd_path,"test_project/test_cohort.Rds")
 ##   template folder
 
 # control.R file   > settings
-control_path         <- paste0(wd_path,"codebase/featuristic/template/control.R")
+control_path         <- paste0(wd_path,"featuristic/template/control.R")
 
 
 # data_def_path.R file > data paths
-data_def_path        <- paste0(wd_path,"codebase/featuristic/template/data_def_path.R") 
+data_def_path        <- paste0(wd_path,"featuristic/template/data_def_path.R") 
 
 # feature_selection.csv file > variable selection 
-feature_path         <- paste0(wd_path,"codebase/featuristic/template/feature_selection.csv") 
+feature_path         <- paste0(wd_path,"featuristic/template/feature_selection.csv") 
 
 # [3] Specify the ID and prefix which is to be associated with any outputs 
 #---------------------------------------
@@ -65,8 +65,8 @@ feature_path         <- paste0(wd_path,"codebase/featuristic/template/feature_se
 ## > the prefix and ID should be different for every set of settings specified in this file
 ## even if working with the same cohort data file
 
-feature_set_prefix   <- "test_cohort_main_model"
-feature_set_id       <- "4" 
+feature_set_prefix   <- "test_cohort"
+feature_set_id       <- "1" 
 
 
 # EXECUTION

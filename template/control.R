@@ -13,7 +13,7 @@
 ## > these folders should be located in the project-specific folder on 
 # the zolab server 
 
-project_path          <- "/data/zolab/featuristic/test_project/" 
+project_path          <- "/data/zolab/sl/featuristic_dev/output/" 
 source_folder         <- paste0(project_path, "data_source/")       #[MODIFY]
 raw_feature_folder    <- paste0(project_path, "raw_feature/")       #[MODIFY]
 mod_feature_folder    <- paste0(project_path, "mod_feature/")       #[MODIFY]
@@ -156,20 +156,22 @@ dia_oncdrs_file_mod   <- paste0(source_folder, "dia_oncdrs.Rds")
 # specify the feature categories which for which master data subsets should be created (stage-0)
 
 source_list <- list(
-  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
-  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs"
+  "dia"
+  # "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
+  # "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs"
 )
 
 # [1] feature types to assemble                                            #[MODIFY]
 #--------------------------------#
 # specify the feature categories which are to be assembled using the datasets from stage 0 (stage-1)
 
-assemble_list <- list(                                                    
+assemble_list <- list(   
+"dia"                                                 
   # basic
-  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
-  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
+  # "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
+  # "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
   # combined
-  "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
+  # "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 # [2] feature types to compile                                               #[MODIFY]
@@ -177,11 +179,12 @@ assemble_list <- list(
 # specify the feature categories which are to be compiled (stage-2)
 
 compile_list <- list(
+  "dia"
   # basic
-  "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
-  "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
+  # "dem", "prc","lvs","med","dia","mic","ed","enc","lab",
+  # "dia_oncdrs","chemo_oncdrs","med_oncdrs","enc_oncdrs","lab_oncdrs",
   # combined
-  "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
+  # "dia_oncdrs_rpdr","med_chemo_oncdrs_rpdr","lab_oncdrs_rpdr"
 )
 
 
@@ -237,8 +240,8 @@ indic_missing_threshold <- list(30, 50, 40, 30)									  #[MODIFY]
 timeframe_list                           <- list()                                 #[DO NOT MODIFY]
 
 ## specify the timeframes
-timeframe_list$timeframe_end$length      <- 2190                                #[MODIFY]
-timeframe_list$timeframe_end$name        <- "timeframe_1m_6y"
+timeframe_list$timeframe_end$length      <- 365                               #[MODIFY]
+timeframe_list$timeframe_end$name        <- "timeframe_1m_1y"
 timeframe_list$timeframe_end$name_abb    <- "end"
 
 timeframe_list$timeframe_short$length    <- 30

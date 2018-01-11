@@ -3,10 +3,13 @@
 
 # data path  [MODIFY]
 #----------------------------------------------------------------------------#
-data_folder                     <- "/data/zolab/featuristic/test_project/master_data/"
+data_folder                     <- "/data/zolab/edw_cohort_data/bwh_ed_2010_2015/Rds"
 
 # data files [MODIFY]
 #----------------------------------------------------------------------------#
+
+# BWH - EDW
+edw_dia_xwalked <- paste0(data_folder, "dia_xwalked_bwh_ed_2010_2015_cohort.Rds")
 
 # BWH - RPDR
 #-------------------------------------------

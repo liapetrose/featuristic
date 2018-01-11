@@ -106,13 +106,13 @@ feature_initialisation <- function() {
 
 	# verify column names
 	# ----------------------------------
-	ifelse(all(c("outcome_id", "outcome", "t0_date", "empi") %in% names(cohort)), 
+	ifelse(all(c("outcome_id", "outcome", "t0_date", "patient_id_master") %in% names(cohort)), 
 	  "cohort columns names correct", stop("cohort column names incorrect"))
 
 	# verify data types of key columns
 	# ----------------------------------
-	if(typeof(cohort$empi) == "character"){
-		print("empi column type [character] is correct")
+	if(typeof(cohort$patient_id_master) == "character"){
+		print("patient_id_master column type [character] is correct")
 		if(typeof(cohort$outcome_id) == "integer"){
 			print("outcome_id column type [integer] is correct")
 			if(is.Date(cohort$t0_date)){
@@ -125,13 +125,13 @@ feature_initialisation <- function() {
 			stop("outcome_id column must be of type integer")
 		}
 	} else{
-		stop("empi column must be of type character")
+		stop("patient_id_master column must be of type character")
 	}
 
 
 	# store key variables
 	# ----------------------------------
-	cohort_key_var <<- c("outcome_id", "t0_date", "empi")
+	cohort_key_var <<- c("outcome_id", "t0_date", "patient_id_master")
 	
 	# store 'extra' variables (for later merging) 
 	# ----------------------------------------------- #
@@ -148,12 +148,12 @@ feature_initialisation <- function() {
 		cohort[,c(paste0("t0_date_beg",i)):=t0_date-get(paste0("timeframe", i))]
 	}
 	
-	setkeyv(cohort, c("empi", paste0("t0_date_beg", name_ext[length(name_ext)]), 
+	setkeyv(cohort, c("patient_id_master", paste0("t0_date_beg", name_ext[length(name_ext)]), 
 		"t0_date"))
 	
 	# store variables to be used to merge
 	# ----------------------------------------------- #
-	cohort_key_var_merge <<- c("empi", "outcome_id", "t0_date", 
+	cohort_key_var_merge <<- c("patient_id_master", "outcome_id", "t0_date", 
 		grep("t0_date_", names(cohort), value=T))
 	
 	# ----------------------------------------------- #
