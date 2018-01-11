@@ -33,9 +33,9 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 	feature_initialisation()
 
 	# save a list of the unique empis used to subset the datasets in stage 0 - for downstream checking
-	cohort_empi <- unique(cohort$empi)
-	saveRDS(data.table(empi = cohort_empi), 
-		paste0(source_folder, "empi_list_", feature_set_prefix, feature_set_id, ".Rds"))
+	cohort_patient_id_master <- unique(cohort$patient_id_master)
+	saveRDS(data.table(patient_id_master = cohort_patient_id_master), 
+		paste0(source_folder, "patient_id_master_list_", feature_set_prefix, feature_set_id, ".Rds"))
 
 	#----------------------------------------------------------------------------#
 	#                		       FEATURE SOURCING                              #
@@ -45,7 +45,7 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 	error_list   <- c()
 	success_list <- c()
 	print("commence stage 0 - preparing master data subsets by feature set ")
-	print(sprintf("Number of patients in cohort: %d", length(cohort_empi)))
+	print(sprintf("Number of patients in cohort: %d", length(cohort_patient_id_master)))
 
 	# Loop over files to create merged and subset versions of each using the combine_subset_data helper function
 	#----------------------------------------------------------------------------#
@@ -75,7 +75,7 @@ feature_sourcing <- function(cohort_path, control_path, data_def_path, feature_p
 		file_source_list <- file_source_list_dictionary[[feature_set]]
 
 		# call helper to combine, subset and save results for current feature_set
-		combine_subset_data(file_source_list = file_source_list, feature_set = feature_set, cohort_empi = cohort_empi)
+		combine_subset_data(file_source_list = file_source_list, feature_set = feature_set, cohort_patient_id_master = cohort_patient_id_master)
 		sink()
 	})
 }	
