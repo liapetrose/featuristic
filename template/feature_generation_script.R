@@ -20,7 +20,7 @@ wd_path <- "/data/zolab/sl/featuristic_dev/"
 
 # [0-B] Load the package - locally 
 #---------------------------------------
-package_path <- paste0(wd_path,"codebase/")
+package_path <- paste0(wd_path,"")
 source(paste0(package_path,"featuristic/package_management/load_package_locally.R"))
 
 # [1] Specify the location of the cohort for which to generate features 

@@ -44,7 +44,7 @@ dem_file_source <- list(rpdr_dem_master_bwh_ed_100k, rpdr_dem_master_dfci)
 mic_file_source <- list(rpdr_mic_master_bwh_ed_100k)  
 
 ## > Generate diagnosis features
-dia_file_source <- list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
+dia_file_source <- list(edw_dia_xwalked)#list(rpdr_dia_master_bwh_ed_100k, rpdr_dia_master_dfci)           
 
 ## > Generate encounter features
 enc_file_source <- list(rpdr_enc_master_bwh_ed_100k, rpdr_enc_master_dfci)

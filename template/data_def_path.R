@@ -3,7 +3,7 @@
 
 # data path  [MODIFY]
 #----------------------------------------------------------------------------#
-data_folder                     <- "/data/zolab/edw_cohort_data/bwh_ed_2010_2015/Rds"
+data_folder                     <- "/data/zolab/edw_cohort_data/bwh_ed_2010_2015/Rds/"
 
 # data files [MODIFY]
 #----------------------------------------------------------------------------#

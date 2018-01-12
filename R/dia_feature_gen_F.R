@@ -58,8 +58,8 @@
   print(sprintf("number of observations: %d", nrow(dia)))
 
   # subset to cohort
-  dia <- dia[!is.na(empi)]
-  dia <- dia[empi %in% cohort$empi]
+  dia <- dia[!is.na(patient_id_master)]
+  dia <- dia[patient_id_master %in% cohort$patient_id_master]
 
   print(sprintf("number of observations - cohort subset: %d", nrow(dia)))
   
@@ -77,14 +77,18 @@
   # ADDITIONAL SUBSETTING / FORMATTING
   #-------------------------------------------------------------------------------#
 
-  # remove rule out diagnoses
-  dia <- dia[is.na(rule_out)]
+  ## remove rule out diagnoses - NOT NEEDED in new data format
+  #dia <- dia[is.na(rule_out)]
 
   # subset to the variables which are to be employed in the feature construction process
   suppressWarnings(dia[, c("clinic_name", "hospital", "inpatient_outpatient", "provider"):=NULL])
 
+  # drop description columns
+  suppressWarnings(dia[, grep("desc|description|detail|flag", names(dia)):=NULL])
+
   # select ccs (single/multi & zc) - category names rather than numbers
   suppressWarnings(dia[, grep("num", names(dia)):=NULL])
+
 
   #-------------------------------------------------------------------------------#
   # MERGING & TIMEFRAMES
@@ -99,7 +103,7 @@
   # foverlaps merge
   dia[, c(paste0(file_date_var, "_1"),paste0(file_date_var, "_2")):=.(get(file_date_var))]
 
-  dia <-  foverlaps(dia, cohort[, mget(cohort_key_var_merge)], by.x=c("empi",
+  dia <-  foverlaps(dia, cohort[, mget(cohort_key_var_merge)], by.x=c("patient_id_master",
     paste0(file_date_var, "_1"), paste0(file_date_var, "_2")), nomatch=0)
 
   print(sprintf("number of observations - cohort subset within the relevant timeframe(s): %d", nrow(dia)))
@@ -138,7 +142,7 @@
 
   zc_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
     dcast.data.table_check(data=x, 
-    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_zc..', zc_cat_name)"), 
+    formula=as.formula("outcome_id + patient_id_master + t0_date ~  paste0('dia_dia.count_zc..', zc_cat_name)"), 
     value.var = "time_diff", subset=non_missing("zc_cat_name"), mode="basic"))
 
   zc_timeframe_comb <- feature_var_format(zc_timeframe_comb)
@@ -147,20 +151,22 @@
     names(DT), value=T), new=paste0(grep("dia_dia.count_zc", names(DT), value=T),name_ext_tmp)), 
     DT=zc_timeframe_comb,  name_ext_extended_tmp)
 
-  # [2] Zocat Mod Features (Modified Cancer Classification - Primary/Secondary Breakdown)
-  #-------------------------------------------------------------------------------#
-  print("feature generation - dia_dia.count_zc.mod")
 
-  zc_mod_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
-    dcast.data.table_check(data=x, 
-    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_zc.mod..', zc_mod_prim_onc_cat_name)"), 
-    value.var="time_diff", subset=non_missing("zc_mod_prim_onc_cat_name"), mode="basic"))
+  # NO CANCER CATS IN NEW DATA
+  # # [2] Zocat Mod Features (Modified Cancer Classification - Primary/Secondary Breakdown)
+  # #-------------------------------------------------------------------------------#
+  # print("feature generation - dia_dia.count_zc.mod")
 
-  zc_mod_timeframe_comb <- feature_var_format(zc_mod_timeframe_comb)
+  # zc_mod_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
+  #   dcast.data.table_check(data=x, 
+  #   formula=as.formula("outcome_id + patient_id_master + t0_date ~  paste0('dia_dia.count_zc.mod..', zc_mod_prim_onc_cat_name)"), 
+  #   value.var="time_diff", subset=non_missing("zc_mod_prim_onc_cat_name"), mode="basic"))
 
-  inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_zc.mod", 
-    names(DT), value=T), new=paste0(grep("dia_dia.count_zc.mod", names(DT), value=T),name_ext_tmp)), 
-    DT=zc_mod_timeframe_comb,  name_ext_extended_tmp)
+  # zc_mod_timeframe_comb <- feature_var_format(zc_mod_timeframe_comb)
+
+  # inv_mapply(function(DT,name_ext_tmp) setnames_check(DT, old=grep("dia_dia.count_zc.mod", 
+  #   names(DT), value=T), new=paste0(grep("dia_dia.count_zc.mod", names(DT), value=T),name_ext_tmp)), 
+  #   DT=zc_mod_timeframe_comb,  name_ext_extended_tmp)
 
   # [3] Single CCS Features
   #-------------------------------------------------------------------------------#
@@ -168,7 +174,7 @@
 
   ccs_single_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
     dcast.data.table_check(data=x, 
-    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_dia.single.ccs..', ccs_single_cat_name)"), 
+    formula=as.formula("outcome_id + patient_id_master + t0_date ~  paste0('dia_dia.count_dia.single.ccs..', ccs_single_cat_name)"), 
     value.var="time_diff", subset=non_missing("ccs_single_cat_name"),mode="basic"))
 
   ccs_single_timeframe_comb <- feature_var_format(ccs_single_timeframe_comb)
@@ -183,15 +189,15 @@
 
   # [*] combine
   ccs_multi_timeframe_comb <- lapply(dia_timeframe_comb, function(x)
-    rbindlist(list(x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_1, time_diff)],
-    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_2, time_diff)], 
-    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_3, time_diff)],
-    x[, .(outcome_id, empi, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_4, time_diff)]),
+    rbindlist(list(x[, .(outcome_id, patient_id_master, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_1, time_diff)],
+    x[, .(outcome_id, patient_id_master, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_2, time_diff)], 
+    x[, .(outcome_id, patient_id_master, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_3, time_diff)],
+    x[, .(outcome_id, patient_id_master, t0_date, ccs_multi_cat_name=ccs_multi_cat_name_4, time_diff)]),
     use.names=T))
 
   ccs_multi_timeframe_comb <- lapply(ccs_multi_timeframe_comb, function(x)
     dcast.data.table_check(data=x, 
-    outcome_id + empi + t0_date ~  paste0("dia_dia.count_dia.multi.ccs..", ccs_multi_cat_name), 
+    outcome_id + patient_id_master + t0_date ~  paste0("dia_dia.count_dia.multi.ccs..", ccs_multi_cat_name), 
     value.var="time_diff", subset=non_missing("ccs_multi_cat_name"),mode="basic"))
 
   ccs_multi_timeframe_comb <- feature_var_format(ccs_multi_timeframe_comb)
@@ -224,7 +230,7 @@
 
   gagne_timeframe_comb <- lapply(dia_timeframe_comb, function(x) 
     dcast.data.table_check(data=x, 
-    formula=as.formula("outcome_id + empi + t0_date ~  paste0('dia_dia.count_gagne.cat..', gagne)"), 
+    formula=as.formula("outcome_id + patient_id_master + t0_date ~  paste0('dia_dia.count_gagne.cat..', gagne)"), 
     value.var = "gagne", subset=non_missing("gagne"), mode="length"))
 
   # count indicators > binary indicators used in the score calculation
@@ -288,7 +294,7 @@
   print("cohort merging & feature formatting")
 
   # merge
-  dia <- dia[cohort, mget(names(dia)), on=c("outcome_id", "empi", "t0_date")]
+  dia <- dia[cohort, mget(names(dia)), on=c("outcome_id", "patient_id_master", "t0_date")]
   suppressWarnings(dia[, grep("dia_id$", names(dia), value=T):=NULL])
 
   # format variables

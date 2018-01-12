@@ -92,12 +92,17 @@ The actual code that constructs the different feature sets is broken into distin
 
 1. `dia`
 
-The following diagnosis features can be created for each timeframe of interest:
+The following types of diagnosis features can be created for each timeframe of interest:
 
 - count of zocat in each timeframe
-- count of zocat mod in each timeframe
+- count of zocat mod (onc) in each timeframe
+- count of single ccs cat in each timeframe
 - count of multi ccs cat in each timeframe
 - count of each gagne category in each timeframe
 - cumulative gagne score in each timeframe
-- days to last zocat dia in each timeframe
-- days to last multi ccs cat in each timeframe
+
+For each of the above feature types (1) - (4), the "days to the last instance" can also be computed for each timeframe.
+
+2. `lvs`
+
+The following types of vital signs features can be created for each timeframe of interest:
