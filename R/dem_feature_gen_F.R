@@ -28,11 +28,11 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   print(sprintf("number of observations: %d", nrow(dem)))
 
   # subset - unique (one row per patient)
-  dem <- unique(dem, by=c("empi"))
+  dem <- unique(dem, by=c("ptid"))
 
   # subset to cohort, i.e. merge with cohort
-  dem <- dem[cohort, as.list(c(mget(setdiff(names(dem), "empi")),
-    mget(cohort_key_var_merge))), on=c("empi"), nomatch=0]
+  dem <- dem[cohort, as.list(c(mget(setdiff(names(dem), "ptid")),
+    mget(cohort_key_var_merge))), on=c("ptid"), nomatch=0]
 
   ## SAMPLE SIZE CHECK #1
   assert("observations for cohort patients", nrow(dem)>0)
@@ -48,8 +48,8 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   #-------------------------------------------------------------------------------#
   
   # date formatting
-  invisible(format_date(list(dem), c("date_of_birth", "date_of_death")))
-  setnames(dem, c("date_of_birth", "date_of_death"), c("dob", "dod"))
+  invisible(format_date(list(dem), c("birth_date", "death_date")))
+  setnames(dem, c("birth_date", "death_date"), c("dob", "dod"))
 
   #-------------------------------------------------------------------------------#
 
@@ -65,28 +65,28 @@ dem_feature_gen <- function(cohort, cohort_key_var_merge, cohort_key_var) {
   # age
   dem[,age:=difftime(t0_date,dob, units="days")/365]
   
-  # race
-  race_clean <- group_race(dem, "race")
-  dem[, race:=race_clean]
+  # # race
+  # race_clean <- group_race(dem, "race")
+  # dem[, race:=race_clean]
 
-  # language
-  language_clean <- group_language(dem, "language")
-  dem[, language:=language_clean]
+  # # language
+  # language_clean <- group_language(dem, "language")
+  # dem[, language:=language_clean]
 
-  # marital status
-  marital_status_clean <- group_marital_status(dem, "marital_status")
-  dem[, marital_status:=marital_status_clean]
+  # # marital status
+  # marital_status_clean <- group_marital_status(dem, "marital_status")
+  # dem[, marital_status:=marital_status_clean]
 
-  # religion
-  religion_clean <- group_religion(dem, "religion")
-  dem[, religion:=religion_clean]
+  # # religion
+  # religion_clean <- group_religion(dem, "religion")
+  # dem[, religion:=religion_clean]
 
   # misc - rename
   setnames_check(dem, old=setdiff(names(dem), cohort_key_var_merge),
     new=paste0("dem_dem.basic..", setdiff(names(dem), cohort_key_var_merge)))
 
   # subset to relevant columns
-  remove_var <- grep("dob$|dod$|vital_status$", names(dem), value=T)
+  remove_var <- grep("dob$|dod$|vital_status$|_raw$|source_flag", names(dem), value=T)
   suppressWarnings(dem[, c(remove_var):=NULL])
 
   #-------------------------------------------------------------------------------#

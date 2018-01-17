@@ -103,6 +103,17 @@ The following types of diagnosis features can be created for each timeframe of i
 
 For each of the above feature types (1) - (4), the "days to the last instance" can also be computed for each timeframe.
 
+In order to create `multi_cat` features, the feature construction machinery first `rbind`s the 4 different `cat`s, effectively `melt`ing the data, then combining them by counting the instances of each code for each timeframe using `dcast`.
+
 2. `lvs`
 
-The following types of vital signs features can be created for each timeframe of interest:
+The following types of vital signs features can be created for each timeframe of interest, for each of the vital signs in `lvs_cat`:{blood pressure sys, blood pressure dia, difference in sys and dia blood pressure, height, weight, repository rate, temperature, weight, pulse} - 
+
+- min of {lvs} in each timeframe
+- max "
+- mean "
+- sd
+
+In addition, for each timeframe, the "days to last" measure of each lvs cat can also be constructed (eg. number of days before `t0` the last systolic blood pressure measure was taked in each of the timeframes)
+
+
